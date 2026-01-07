@@ -1,0 +1,134 @@
+* {
+  box-sizing: border-box;
+  font-family: "Inter", Arial, Helvetica, sans-serif;
+}
+
+.login-container {
+  height: 100vh;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-form {
+  width: 380px;
+  padding: 32px;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+/* Header */
+.app-name {
+  text-align: center;
+  font-size: 30px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.tagline {
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 28px;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  background: #f3f3f3;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 24px;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 8px;
+  color: #666;
+}
+
+.tab.active {
+  background: white;
+  color: black;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Fields */
+.field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+.field label {
+  font-size: 13px;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.field input {
+  padding: 12px 14px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  outline: none;
+  font-size: 14px;
+}
+
+.field input:focus {
+  border-color: black;
+}
+
+/* Password */
+.password-field {
+  position: relative;
+}
+
+.show-password {
+  position: absolute;
+  right: 14px;
+  top: 38px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #666;
+}
+
+/* Button */
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: black;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.login-btn:hover {
+  opacity: 0.9;
+}
+
+.login-btn.clicked {
+  background: white;
+  color: black;
+  border: 1px solid black;
+}
+
+/* Footer text */
+.login-form::after {
+  content: "By continuing, you agree to our Terms of Service and Privacy Policy.";
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  color: #777;
+  margin-top: 18px;
+}
