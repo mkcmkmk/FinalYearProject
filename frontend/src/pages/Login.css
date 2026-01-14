@@ -3,51 +3,66 @@
   font-family: "Inter", Arial, Helvetica, sans-serif;
 }
 
-.login-container {
+.auth-page {
   height: 100vh;
   background: #ffffff;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
-.login-form {
-  width: 380px;
-  padding: 32px;
-  background: white;
-  border-radius: 14px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+/* Welcome */
+.welcome {
+  text-align: center;
+  margin-bottom: 30px;
 }
 
-/* Header */
-.app-name {
-  text-align: center;
-  font-size: 30px;
+.welcome h1 {
+  font-size: 36px;
   font-weight: 600;
-  margin-bottom: 6px;
 }
 
-.tagline {
-  text-align: center;
-  font-size: 14px;
+.welcome p {
+  font-size: 15px;
   color: #666;
-  margin-bottom: 28px;
+}
+
+/* Card */
+.auth-card {
+  width: 380px;
+  background: white;
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+
+.auth-card h2 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #777;
+  margin-bottom: 20px;
 }
 
 /* Tabs */
 .tabs {
   display: flex;
-  background: #f3f3f3;
+  background: #f2f2f2;
   border-radius: 10px;
   padding: 4px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .tab {
   flex: 1;
-  padding: 10px;
   border: none;
   background: transparent;
+  padding: 10px;
   font-size: 14px;
   cursor: pointer;
   border-radius: 8px;
@@ -62,73 +77,57 @@
 
 /* Fields */
 .field {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 18px;
+  text-align: left;
+  margin-bottom: 16px;
 }
 
 .field label {
   font-size: 13px;
   margin-bottom: 6px;
-  color: #333;
+  display: block;
 }
 
 .field input {
+  width: 100%;
   padding: 12px 14px;
-  border: 1px solid #ddd;
   border-radius: 10px;
-  outline: none;
+  border: 1px solid #ddd;
   font-size: 14px;
 }
 
 .field input:focus {
+  outline: none;
   border-color: black;
-}
-
-/* Password */
-.password-field {
-  position: relative;
-}
-
-.show-password {
-  position: absolute;
-  right: 14px;
-  top: 38px;
-  font-size: 12px;
-  cursor: pointer;
-  color: #666;
 }
 
 /* Button */
 .login-btn {
   width: 100%;
   padding: 14px;
-  background: black;
+  background: linear-gradient(to right, #111, #000);
   color: white;
   border: none;
   border-radius: 12px;
-  cursor: pointer;
   font-size: 14px;
+  cursor: pointer;
   margin-top: 8px;
-  transition: all 0.2s ease;
 }
 
 .login-btn:hover {
   opacity: 0.9;
 }
 
-.login-btn.clicked {
-  background: white;
-  color: black;
-  border: 1px solid black;
-}
-
-/* Footer text */
-.login-form::after {
-  content: "By continuing, you agree to our Terms of Service and Privacy Policy.";
-  display: block;
-  text-align: center;
+/* Footer */
+.footer-text {
+  margin-top: 18px;
   font-size: 12px;
   color: #777;
-  margin-top: 18px;
+  text-align: center;
+  max-width: 360px;
+}
+
+.error {
+  color: red;
+  font-size: 13px;
+  margin-bottom: 10px;
 }

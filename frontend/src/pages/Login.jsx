@@ -1,99 +1,107 @@
 import { useState } from "react";
-import "./Login.css";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import "./Login.css";
+import { useAuth } from "../context/authContext";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [clicked, setClicked] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  const [error, setError] = useState(null);
+
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
 
     try {
-      const response = await axios.post(
+      const res = await axios.post(
         "http://localhost:3000/api/auth/login",
         { email, password }
       );
 
-      console.log("Login successful:", response.data);
-      localStorage.setItem("token", response.data.token);
+      if (res.data.success) {
+        login(res.data.user);
+        localStorage.setItem("token", res.data.token);
 
-    } catch (error) {
-      console.error(
-        "Login failed:",
-        error.response?.data?.message || error.message
-      );
+        const role = res.data.user.role;
+        if (role === "admin") navigate("/admin-dashboard");
+        else if (role === "teacher") navigate("/teacher-dashboard");
+        else navigate("/student-dashboard");
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || "Server error");
     }
-
-    setClicked(true);
-    setTimeout(() => setClicked(false), 120);
   };
 
   return (
-    <div className="login-container">
-      <form className="login-form" onSubmit={handleSubmit}>
-        {/* Header */}
-        <h1 className="app-name">Harmoniq</h1>
-        <p className="tagline">learn teach master and inspire</p>
+    <div className="auth-page">
+      {/* Top Welcome */}
+      <div className="welcome">
+        <h1>Welcome</h1>
+        <p>Sign in to continue to your dashboard</p>
+      </div>
+
+      {/* Card */}
+      <div className="auth-card">
+        <h2>Get Started</h2>
+        <p className="subtitle">Choose your preferred method to continue</p>
 
         {/* Tabs */}
         <div className="tabs">
           <button
-            type="button"
-            className={`tab ${activeTab === "login" ? "active" : ""}`}
+            className={activeTab === "login" ? "tab active" : "tab"}
             onClick={() => setActiveTab("login")}
           >
             Login
           </button>
           <button
-            type="button"
-            className={`tab ${activeTab === "signup" ? "active" : ""}`}
-            onClick={() => setActiveTab("signup")}
+              type="button"
+              className={activeTab === "signup" ? "tab active" : "tab"}
+              onClick={() => navigate("/signup")}
           >
             Sign Up
           </button>
         </div>
 
-        {/* Form Fields */}
-        <div className="field">
-          <label>Email</label>
-          <input
-            type="email"
-            placeholder="you@example.com"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
+        {error && <p className="error">{error}</p>}
 
-        <div className="field password-field">
-          <label>Password</label>
-          <input
-            type={showPassword ? "text" : "password"}
-            placeholder="••••••••"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <span
-            className="show-password"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? "Hide" : "Show"}
-          </span>
-        </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit}>
+          <div className="field">
+            <label>Email</label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
 
-        {/* Submit Button */}
-        <button
-          type="submit"
-          className={`login-btn ${clicked ? "clicked" : ""}`}
-        >
-          Sign In
-        </button>
-      </form>
+          <div className="field">
+            <label>Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          <button type="submit" className="login-btn">
+            Sign In
+          </button>
+        </form>
+      </div>
+
+      <p className="footer-text">
+        By continuing, you agree to our Terms of Service and Privacy Policy.
+      </p>
     </div>
   );
 };

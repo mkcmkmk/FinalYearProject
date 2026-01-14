@@ -1,5 +1,6 @@
 import mongoose from "mongoose";    
-import { type } from "node:os";
+// import { url } from "node:inspector";
+// import { type } from "node:os";
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -20,6 +21,31 @@ const userSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now,
+    },
+    image:{
+        url:{
+            type: String,
+        }
+    },
+    contactNumber:{
+        type: Number,
+        required: false,
+    },
+    isMember:{
+        type: Boolean,
+        default: false,
+    },
+    isTeacher:{
+        type: Boolean,
+        default: false,
+    },
+     resetToken: {
+        type: String, // Token for password reset
+        default: null, // Default value is null
+    },
+    resetTokenExpiry: {
+        type: Date, // Expiry date for the reset token
+        default: null, // Default value is null
     },
     UpdatedAt: {
         type: Date,

@@ -1,0 +1,72 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", Arial, sans-serif;
+}
+
+.student-page {
+  height: 100vh;
+  background: #fff;
+}
+
+/* Navbar */
+.navbar {
+  height: 64px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.menu {
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.nav-left nav a {
+  margin-right: 20px;
+  text-decoration: none;
+  color: #111;
+  font-size: 14px;
+}
+
+.nav-left nav a:hover {
+  text-decoration: underline;
+}
+
+.nav-right .profile {
+  font-size: 18px;
+  cursor: pointer;
+}
+
+/* Hero Section */
+.hero {
+  padding: 120px 120px;
+}
+
+.hero h1 {
+  font-size: 72px;
+  font-weight: 500;
+  letter-spacing: -1px;
+}
+
+.hero p {
+  margin-top: 16px;
+  font-size: 16px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.welcome-user {
+  margin-top: 32px;
+  font-size: 14px;
+  color: #999;
+}
