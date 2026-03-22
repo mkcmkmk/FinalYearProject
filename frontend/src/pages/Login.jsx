@@ -41,14 +41,14 @@ const Login = () => {
     <div className="auth-page">
       {/* Top Welcome */}
       <div className="welcome">
-        <h1>Welcome</h1>
+        <h1>Welcome to harmoniq</h1>
         <p>Sign in to continue to your dashboard</p>
       </div>
 
       {/* Card */}
       <div className="auth-card">
         <h2>Get Started</h2>
-        <p className="subtitle">Choose your preferred method to continue</p>
+        <p className="subtitle">signup to create account</p>
 
         {/* Tabs */}
         <div className="tabs">

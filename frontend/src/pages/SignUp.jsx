@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import "./Login.css"; // reuse same styling
+import "./Login.css";
 import { useAuth } from "../context/authContext";
 
 const SignUp = () => {
@@ -14,31 +14,46 @@ const SignUp = () => {
     password: "",
     role: "student",
     contactNumber: "",
-    profileImage: "", // optional (url)
+    profileImage: "",
+    instrumentExpertise: "",
+    yearsOfExperience: "",
+    teacherBio: "",
   });
 
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const onChange = (e) => {
     setError(null);
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const isTeacher = form.role === "teacher";
+
   const handleSignUp = async (e) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     try {
-      // convert contactNumber to number if filled
       const payload = {
-        ...form,
-        contactNumber: form.contactNumber ? Number(form.contactNumber) : undefined,
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role: form.role,
+        contactNumber: form.contactNumber ? Number(form.contactNumber) : null,
+        profileImage: form.profileImage || "",
+        instrumentExpertise: isTeacher ? form.instrumentExpertise : "",
+        yearsOfExperience: isTeacher && form.yearsOfExperience !== "" ? Number(form.yearsOfExperience) : null,
+        teacherBio: isTeacher ? form.teacherBio : "",
       };
 
-      const res = await axios.post("http://localhost:3000/api/auth/register", payload);
+      const res = await axios.post(
+        "http://localhost:3000/api/auth/register",
+        payload
+      );
 
       if (res.data.success) {
-        // optional auto-login
         login(res.data.user);
         localStorage.setItem("token", res.data.token);
 
@@ -49,6 +64,8 @@ const SignUp = () => {
       }
     } catch (err) {
       setError(err?.response?.data?.message || "Server error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -119,9 +136,49 @@ const SignUp = () => {
             >
               <option value="student">Student</option>
               <option value="teacher">Teacher</option>
-              <option value="admin">Admin</option>
             </select>
           </div>
+
+          {isTeacher && (
+            <>
+              <div className="field">
+                <label>Instrument Expertise</label>
+                <input
+                  name="instrumentExpertise"
+                  type="text"
+                  placeholder="Piano, Guitar, Vocal..."
+                  value={form.instrumentExpertise}
+                  onChange={onChange}
+                  required
+                />
+              </div>
+
+              <div className="field">
+                <label>Years of Experience</label>
+                <input
+                  name="yearsOfExperience"
+                  type="number"
+                  min="0"
+                  placeholder="5"
+                  value={form.yearsOfExperience}
+                  onChange={onChange}
+                  required
+                />
+              </div>
+
+              <div className="field">
+                <label>Teacher Bio</label>
+                <input
+                  name="teacherBio"
+                  type="text"
+                  placeholder="Tell students about your teaching background"
+                  value={form.teacherBio}
+                  onChange={onChange}
+                  required
+                />
+              </div>
+            </>
+          )}
 
           <div className="field">
             <label>Contact Number (optional)</label>
@@ -145,8 +202,8 @@ const SignUp = () => {
             />
           </div>
 
-          <button type="submit" className="login-btn">
-            Create Account
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading ? "Creating..." : "Create Account"}
           </button>
         </form>
 

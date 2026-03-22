@@ -131,3 +131,39 @@
   font-size: 13px;
   margin-bottom: 10px;
 }
+
+.auth-page {
+  animation: fade-in var(--motion-duration-slow) var(--motion-ease);
+}
+
+.welcome {
+  animation: fade-up var(--motion-duration-base) var(--motion-ease);
+}
+
+.auth-card {
+  animation: fade-up calc(var(--motion-duration-base) + 80ms) var(--motion-ease);
+}
+
+.auth-card,
+.tab,
+.field input,
+.login-btn {
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease),
+    box-shadow var(--motion-duration-fast) var(--motion-ease),
+    border-color var(--motion-duration-fast) var(--motion-ease),
+    opacity var(--motion-duration-fast) var(--motion-ease);
+}
+
+.auth-card:hover {
+  transform: translateY(-2px);
+}
+
+.tab:hover,
+.login-btn:hover {
+  transform: translateY(-1px);
+}
+
+.field input:focus {
+  box-shadow: 0 0 0 4px rgba(17, 17, 17, 0.06);
+}

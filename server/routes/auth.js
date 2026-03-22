@@ -1,7 +1,7 @@
 import express from "express";
 import { login, register } from "../controllers/authController.js";
 
-const router = express.Router(); // ✅ THIS WAS MISSING
+const router = express.Router(); 
 
 router.post("/login", login);
 router.post("/register", register);

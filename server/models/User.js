@@ -18,6 +18,21 @@ const userSchema = new mongoose.Schema({
     role: {type: String, enum: ['admin', 'teacher','student'], required: true},
     profileImage: {
         type: String,},
+    instrumentExpertise: {
+        type: String,
+        default: "",
+        trim: true,
+    },
+    yearsOfExperience: {
+        type: Number,
+        default: null,
+        min: 0,
+    },
+    teacherBio: {
+        type: String,
+        default: "",
+        trim: true,
+    },
     createdAt: {
         type: Date,
         default: Date.now,
@@ -40,12 +55,12 @@ const userSchema = new mongoose.Schema({
         default: false,
     },
      resetToken: {
-        type: String, // Token for password reset
-        default: null, // Default value is null
+        type: String,
+        default: null,
     },
     resetTokenExpiry: {
-        type: Date, // Expiry date for the reset token
-        default: null, // Default value is null
+        type: Date,
+        default: null,
     },
     UpdatedAt: {
         type: Date,

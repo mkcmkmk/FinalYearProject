@@ -2,34 +2,79 @@ import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-// helper: create token
 const signToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_KEY, { expiresIn: "1h" });
 };
 
-// ✅ REGISTER (Sign Up)
+const userResponse = (user) => ({
+  id: user._id,
+  name: user.name,
+  role: user.role,
+  email: user.email,
+  profileImage: user.profileImage || "",
+  contactNumber: user.contactNumber ?? null,
+  instrumentExpertise: user.instrumentExpertise || "",
+  yearsOfExperience: user.yearsOfExperience ?? null,
+  teacherBio: user.teacherBio || "",
+});
+
 const register = async (req, res) => {
   try {
-    const { name, email, password, role, profileImage, contactNumber } = req.body;
+    let {
+      name,
+      email,
+      password,
+      role,
+      profileImage,
+      contactNumber,
+      instrumentExpertise,
+      yearsOfExperience,
+      teacherBio,
+    } = req.body;
 
-    // Basic validation
-    if (!name || !email || !password || !role) {
+    name = (name || "").trim();
+    email = (email || "").trim().toLowerCase();
+    password = password || "";
+    instrumentExpertise = (instrumentExpertise || "").trim();
+    teacherBio = (teacherBio || "").trim();
+
+    if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Name, email, password and role are required",
+        message: "Name, email and password are required",
       });
     }
 
-    // role validation (must match enum)
-    const allowedRoles = ["admin", "teacher", "student"];
+    const allowedRoles = ["student", "teacher"];
+    role = (role || "student").toLowerCase();
+
     if (!allowedRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid role. Use admin, teacher, or student",
-      });
+      role = "student";
     }
 
-    // Check if email already exists
+    if (role === "teacher") {
+      if (!instrumentExpertise) {
+        return res.status(400).json({
+          success: false,
+          message: "Instrument expertise is required for teacher signup",
+        });
+      }
+
+      if (yearsOfExperience === undefined || yearsOfExperience === null || yearsOfExperience === "") {
+        return res.status(400).json({
+          success: false,
+          message: "Years of experience is required for teacher signup",
+        });
+      }
+
+      if (!teacherBio) {
+        return res.status(400).json({
+          success: false,
+          message: "Teacher bio is required for teacher signup",
+        });
+      }
+    }
+
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({
@@ -38,18 +83,19 @@ const register = async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user (fields based on your model)
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
       role,
       profileImage: profileImage || "",
-      contactNumber: contactNumber ? Number(contactNumber) : undefined,
-      // Other fields like createdAt, isMember, resetToken etc. are handled by schema defaults
+      contactNumber: contactNumber ? Number(contactNumber) : null,
+      instrumentExpertise: role === "teacher" ? instrumentExpertise : "",
+      yearsOfExperience: role === "teacher" ? Number(yearsOfExperience) : null,
+      teacherBio: role === "teacher" ? teacherBio : "",
+      isTeacher: role === "teacher",
     });
 
     const token = signToken(user._id);
@@ -57,18 +103,19 @@ const register = async (req, res) => {
     return res.status(201).json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        role: user.role,
-        email: user.email,
-        profileImage: user.profileImage,
-        contactNumber: user.contactNumber,
-      },
+      user: userResponse(user),
       message: "Account created successfully",
     });
   } catch (error) {
     console.error("Register error:", error);
+
+    if (error?.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: "Server error",
@@ -76,12 +123,20 @@ const register = async (req, res) => {
   }
 };
 
-// ✅ LOGIN (your same code + returns email too)
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
-    // Check user
+    email = (email || "").trim().toLowerCase();
+    password = password || "";
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({
@@ -90,7 +145,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({
@@ -99,20 +153,12 @@ const login = async (req, res) => {
       });
     }
 
-    // Generate token
     const token = signToken(user._id);
 
     return res.status(200).json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        role: user.role,
-        email: user.email,
-        profileImage: user.profileImage,
-        contactNumber: user.contactNumber,
-      },
+      user: userResponse(user),
       message: "Login successful",
     });
   } catch (error) {
