@@ -12,6 +12,11 @@ const formatTime = (value) =>
     minute: "2-digit",
   });
 
+const getInitial = (name) => String(name || "U").charAt(0).toUpperCase();
+
+const getRoomTypeLabel = (roomType) =>
+  roomType === "teachers" ? "Teacher lounge" : "Group room";
+
 const ChatPage = () => {
   const { user, logout, login } = useAuth();
   const navigate = useNavigate();
@@ -177,8 +182,11 @@ const ChatPage = () => {
       <div className="chat-shell">
         <aside className="chat-sidebar">
           <div className="chat-sidebar-head">
-            <h2>Rooms</h2>
-            <span>{rooms.length}</span>
+            <div>
+              <p className="chat-section-kicker">Your spaces</p>
+              <h2>Rooms</h2>
+            </div>
+            <span className="chat-count-pill">{rooms.length}</span>
           </div>
 
           {rooms.length === 0 ? (
@@ -195,25 +203,45 @@ const ChatPage = () => {
                   className={room.id === activeRoomId ? "chat-room active" : "chat-room"}
                   onClick={() => setActiveRoomId(room.id)}
                 >
-                  <strong>{room.title}</strong>
-                  <span>{room.subtitle}</span>
+                  <div className="chat-room-top">
+                    <div>
+                      <strong>{room.title}</strong>
+                      <span>{room.subtitle}</span>
+                    </div>
+                    <span className="chat-room-badge">{room.roomType === "teachers" ? "Lounge" : "Group"}</span>
+                  </div>
+                  <div className="chat-room-meta">{room.participants?.length || 0} participants</div>
                 </button>
               ))}
             </div>
           )}
 
           {activeRoom?.participants?.length ? (
-            <div className="chat-members">
-              <h3>Participants</h3>
-              {activeRoom.participants.map((member) => (
-                <div className="chat-member" key={member.id}>
-                  <div className="chat-member-avatar">{String(member.name || "U").charAt(0).toUpperCase()}</div>
-                  <div>
-                    <strong>{member.name}</strong>
-                    <span>{member.role}</span>
-                  </div>
+            <div className="chat-members-card">
+              <div className="chat-members-head">
+                <div>
+                  <p className="chat-section-kicker">In this room</p>
+                  <h3>Participants</h3>
                 </div>
-              ))}
+                <span className="chat-count-pill">{activeRoom.participants.length}</span>
+              </div>
+              <div className="chat-members">
+                {activeRoom.participants.map((member) => (
+                  <div className="chat-member" key={member.id}>
+                    <div className="chat-member-avatar">
+                      {member.profileImage ? (
+                        <img src={member.profileImage} alt={member.name} />
+                      ) : (
+                        getInitial(member.name)
+                      )}
+                    </div>
+                    <div>
+                      <strong>{member.name}</strong>
+                      <span>{member.role}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
         </aside>
@@ -223,8 +251,15 @@ const ChatPage = () => {
             <>
               <div className="chat-room-head">
                 <div>
+                  <p className="chat-section-kicker">{getRoomTypeLabel(activeRoom.roomType)}</p>
                   <h2>{activeRoom.title}</h2>
                   <p>{activeRoom.subtitle}</p>
+                </div>
+                <div className="chat-room-summary">
+                  <span className="chat-room-pill">{activeRoom.participants?.length || 0} participants</span>
+                  <span className="chat-room-pill chat-room-pill--ghost">
+                    {activeRoom.roomType === "teachers" ? "Teachers only" : "Student group"}
+                  </span>
                 </div>
               </div>
 
@@ -236,13 +271,21 @@ const ChatPage = () => {
                 {messages.map((message) => {
                   const mine = String(message.sender?._id || message.sender?.id || "") === String(currentUserId);
                   return (
-                    <article key={message._id} className={mine ? "chat-bubble mine" : "chat-bubble"}>
-                      <div className="chat-bubble-head">
-                        <strong>{message.sender?.name || "Member"}</strong>
-                        <span>{message.sender?.role || "user"}</span>
+                    <article key={message._id} className={mine ? "chat-message-row mine" : "chat-message-row"}>
+                      {!mine ? (
+                        <div className="chat-avatar">{getInitial(message.sender?.name)}</div>
+                      ) : null}
+                      <div className={mine ? "chat-bubble mine" : "chat-bubble"}>
+                        <div className="chat-bubble-head">
+                          <div className="chat-bubble-meta">
+                            <strong>{mine ? "You" : message.sender?.name || "Member"}</strong>
+                            <span>{message.sender?.role || "user"}</span>
+                          </div>
+                          <time>{formatTime(message.createdAt)}</time>
+                        </div>
+                        <p>{message.body}</p>
                       </div>
-                      <p>{message.body}</p>
-                      <time>{formatTime(message.createdAt)}</time>
+                      {mine ? <div className="chat-avatar chat-avatar--mine">{getInitial(message.sender?.name || user?.name)}</div> : null}
                     </article>
                   );
                 })}
@@ -250,15 +293,25 @@ const ChatPage = () => {
               </div>
 
               <form className="chat-composer" onSubmit={handleSend}>
+                <div className="chat-composer-head">
+                  <div>
+                    <strong>Send a message</strong>
+                    <span>Everyone in this room will see it instantly after refresh.</span>
+                  </div>
+                  <span className="chat-compose-badge">{activeRoom.title}</span>
+                </div>
                 <textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
                   placeholder={`Message ${activeRoom.title}...`}
                   rows="3"
                 />
-                <button className="chat-btn" type="submit" disabled={sending || !draft.trim()}>
-                  {sending ? "Sending..." : "Send"}
-                </button>
+                <div className="chat-composer-actions">
+                  <p>Press send to post your message.</p>
+                  <button className="chat-btn" type="submit" disabled={sending || !draft.trim()}>
+                    {sending ? "Sending..." : "Send"}
+                  </button>
+                </div>
               </form>
             </>
           ) : (

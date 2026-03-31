@@ -1,7 +1,9 @@
-// StudentDashboard.jsx
+import { useMemo, useState } from "react";
 import "./StudentDashboard.css";
 import { useAuth } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
+import { COURSE_CATALOG } from "../data/courseCatalog";
+import StudentAIChat from "./StudentAIChat";
 
 const FALLBACK_IMAGE =
   "data:image/svg+xml;charset=UTF-8," +
@@ -21,6 +23,8 @@ const FALLBACK_IMAGE =
     </svg>
   `);
 
+const INITIAL_VISIBLE_COURSES = 4;
+
 const setFallbackImage = (event) => {
   event.currentTarget.onerror = null;
   event.currentTarget.src = FALLBACK_IMAGE;
@@ -29,6 +33,14 @@ const setFallbackImage = (event) => {
 const StudentDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showAllCourses, setShowAllCourses] = useState(false);
+
+  const visibleCourses = useMemo(
+    () => (showAllCourses ? COURSE_CATALOG : COURSE_CATALOG.slice(0, INITIAL_VISIBLE_COURSES)),
+    [showAllCourses]
+  );
+
+  const hasMoreCourses = COURSE_CATALOG.length > INITIAL_VISIBLE_COURSES;
 
   const goToPay = (plan) => {
     navigate("/pay", { state: { plan } });
@@ -40,6 +52,10 @@ const StudentDashboard = () => {
 
   const goToChat = () => {
     navigate("/chat");
+  };
+
+  const goToCourse = (course) => {
+    navigate(`/courses/${course.slug}`);
   };
 
   return (
@@ -138,64 +154,50 @@ const StudentDashboard = () => {
       </section>
 
       <section className="classes-section" id="courses">
-        <h2>Instrument Classes</h2>
+        <div className="classes-section-head">
+          <div>
+            <h2>Instrument Classes</h2>
+            <p>Explore featured courses first, then expand to see more instruments.</p>
+          </div>
+          {hasMoreCourses ? (
+            <button
+              className="courses-toggle-btn"
+              onClick={() => setShowAllCourses((prev) => !prev)}
+              type="button"
+            >
+              {showAllCourses ? "Show less instruments" : "See more instruments"}
+            </button>
+          ) : null}
+        </div>
 
         <div className="instrument-grid">
-          <div className="instrument-tile">
-            <div className="tile-top">
-              <h3>Piano</h3>
-              <p>Play the virtual piano and visualize notes, chords, and scales.</p>
+          {visibleCourses.map((course) => (
+            <div
+              className="instrument-tile"
+              key={course.slug}
+              onClick={() => goToCourse(course)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  goToCourse(course);
+                }
+              }}
+            >
+              <div className="tile-top">
+                <h3>{course.instrument}</h3>
+                <p>{course.shortDescription}</p>
+              </div>
+              <img
+                className="tile-img"
+                src={course.image}
+                alt={course.instrument}
+                loading="lazy"
+                onError={setFallbackImage}
+              />
             </div>
-            <img
-              className="tile-img"
-              src="https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=1200&q=60"
-              alt="Piano"
-              loading="lazy"
-              onError={setFallbackImage}
-            />
-          </div>
-
-          <div className="instrument-tile">
-            <div className="tile-top">
-              <h3>Guitar</h3>
-              <p>Learn chords, strumming patterns, and simple songs.</p>
-            </div>
-            <img
-              className="tile-img"
-              src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1200&q=60"
-              alt="Guitar"
-              loading="lazy"
-              onError={setFallbackImage}
-            />
-          </div>
-
-          <div className="instrument-tile">
-            <div className="tile-top">
-              <h3>Bass Guitar</h3>
-              <p>Build groove, timing, and bassline fundamentals.</p>
-            </div>
-            <img
-              className="tile-img"
-              src="https://images.unsplash.com/photo-1516924962500-2b4b3b99ea02?auto=format&fit=crop&w=1200&q=60"
-              alt="Bass"
-              loading="lazy"
-              onError={setFallbackImage}
-            />
-          </div>
-
-          <div className="instrument-tile">
-            <div className="tile-top">
-              <h3>Ukulele</h3>
-              <p>Quick chords, fun rhythm, and easy sing-along songs.</p>
-            </div>
-            <img
-              className="tile-img"
-              src="https://images.unsplash.com/photo-1520975867597-0fbbf5bfb4b6?auto=format&fit=crop&w=1200&q=60"
-              alt="Ukulele"
-              loading="lazy"
-              onError={setFallbackImage}
-            />
-          </div>
+          ))}
         </div>
       </section>
 
@@ -236,6 +238,8 @@ const StudentDashboard = () => {
           © {new Date().getFullYear()} Harmoniq. All rights reserved.
         </div>
       </footer>
+
+      <StudentAIChat user={user} />
     </div>
   );
 };

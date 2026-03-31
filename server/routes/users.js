@@ -4,7 +4,9 @@ import {
   updateMe,
   getMe,
   getMyTeacherProfile,
+  getTeacherDirectory,
   getTeacherProfileById,
+  submitTeacherRating,
 } from "../controllers/userController.js";
 
 const router = express.Router();
@@ -12,6 +14,8 @@ const router = express.Router();
 router.get("/me", protect, getMe);
 router.put("/me", protect, updateMe);
 router.get("/teacher-profile/me", protect, getMyTeacherProfile);
+router.get("/teachers", protect, getTeacherDirectory);
 router.get("/teachers/:id", protect, getTeacherProfileById);
+router.post("/teachers/:id/rating", protect, submitTeacherRating);
 
 export default router;

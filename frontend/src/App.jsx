@@ -4,6 +4,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherProfile from "./pages/TeacherProfile";
+import CourseDetail from "./pages/CourseDetail";
 import ChatPage from "./pages/ChatPage";
 import SignUp from "./pages/SignUp";
 import Pay from "./pages/Pay";
@@ -19,6 +20,7 @@ function App() {
       <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
       <Route path="/teacher-profile" element={<TeacherProfile />} />
       <Route path="/teachers/:teacherId" element={<TeacherProfile />} />
+      <Route path="/courses/:instrumentId" element={<CourseDetail />} />
       <Route path="/chat" element={<ChatPage />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/pay" element={<Pay />} />

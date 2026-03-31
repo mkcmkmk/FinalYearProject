@@ -15,6 +15,12 @@ const subscriptionSchema = new mongoose.Schema(
       required: true,
     },
 
+    level: {
+      type: String,
+      enum: ["beginner", "intermediate", "advanced"],
+      default: "beginner",
+    },
+
     amount: {
       type: Number,
       default: 0,

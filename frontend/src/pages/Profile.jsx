@@ -12,6 +12,8 @@ const normalizeStatus = (s) => {
   return "none";
 };
 
+const DASH = "-";
+
 const Profile = () => {
   const { user, login, logout } = useAuth();
   const navigate = useNavigate();
@@ -81,7 +83,9 @@ const Profile = () => {
     };
 
     load();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [login]);
 
   const handleSave = async (e) => {
@@ -101,7 +105,7 @@ const Profile = () => {
 
       if (res.data?.success && res.data?.user) {
         login(res.data.user);
-        setMsg("Profile updated ✅");
+        setMsg("Profile updated successfully.");
       } else {
         setErr(res.data?.message || "Update failed");
       }
@@ -119,16 +123,14 @@ const Profile = () => {
     navigate("/student-dashboard");
   };
 
-  const instrument = sub?.instrument || "—";
-  const plan = sub?.plan || "—";
+  const instrument = sub?.instrument || DASH;
+  const level = sub?.level || DASH;
+  const plan = sub?.plan || DASH;
   const status = normalizeStatus(sub?.status);
 
-  const teacherName = sub?.teacher?.name || "—";
+  const teacherName = sub?.teacher?.name || DASH;
   const teacherId = sub?.teacher?.id || sub?.teacher?._id || "";
-  const groupName =
-    sub?.groupName ||
-    sub?.group?.groupName ||
-    "—";
+  const groupName = sub?.groupName || sub?.group?.groupName || DASH;
 
   if (loading) {
     return (
@@ -191,9 +193,7 @@ const Profile = () => {
                   onError={(e) => (e.currentTarget.style.display = "none")}
                 />
               ) : (
-                <div className="hp-photoFallback">
-                  {(user?.name?.[0] || "U").toUpperCase()}
-                </div>
+                <div className="hp-photoFallback">{(user?.name?.[0] || "U").toUpperCase()}</div>
               )}
             </div>
 
@@ -226,6 +226,10 @@ const Profile = () => {
             <div className="hp-kv">
               <span>Instrument</span>
               <b>{instrument}</b>
+            </div>
+            <div className="hp-kv">
+              <span>Level</span>
+              <b>{level}</b>
             </div>
           </div>
 
@@ -301,10 +305,10 @@ const Profile = () => {
               <div className="hp-section">
                 <h3 className="hp-sectionTitle">Details</h3>
                 <div className="hp-grid2">
-                  <div className="hp-box"><span>Full Name</span><b>{user?.name || "—"}</b></div>
-                  <div className="hp-box"><span>Role</span><b style={{ textTransform: "capitalize" }}>{user?.role || "—"}</b></div>
-                  <div className="hp-box"><span>Email</span><b>{user?.email || "—"}</b></div>
-                  <div className="hp-box"><span>Contact Number</span><b>{user?.contactNumber || "—"}</b></div>
+                  <div className="hp-box"><span>Full Name</span><b>{user?.name || DASH}</b></div>
+                  <div className="hp-box"><span>Role</span><b style={{ textTransform: "capitalize" }}>{user?.role || DASH}</b></div>
+                  <div className="hp-box"><span>Email</span><b>{user?.email || DASH}</b></div>
+                  <div className="hp-box"><span>Contact Number</span><b>{user?.contactNumber || DASH}</b></div>
                 </div>
               </div>
             )}
@@ -318,6 +322,7 @@ const Profile = () => {
                     <div className="hp-box"><span>Status</span><b className={`hp-pill hp-pill--${status}`}>{status}</b></div>
                     <div className="hp-box"><span>Plan</span><b>{plan}</b></div>
                     <div className="hp-box"><span>Instrument</span><b>{instrument}</b></div>
+                    <div className="hp-box"><span>Level</span><b>{level}</b></div>
                     <div className="hp-box"><span>Teacher</span><b>{teacherName}</b></div>
                     <div className="hp-box"><span>Group</span><b>{groupName}</b></div>
                   </div>
@@ -376,7 +381,7 @@ const Profile = () => {
           </div>
 
           <div className="hp-footnote">
-            © {new Date().getFullYear()} Harmoniq. All rights reserved.
+            � {new Date().getFullYear()} Harmoniq. All rights reserved.
           </div>
         </main>
       </div>
