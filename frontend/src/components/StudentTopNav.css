@@ -1,0 +1,111 @@
+.student-top-nav {
+  height: 72px;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 40px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.student-top-nav__left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.student-top-nav__menu {
+  font-size: 20px;
+  cursor: default;
+  color: var(--brand-deep);
+}
+
+.student-top-nav__links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.student-nav-link,
+.student-nav-chat-btn {
+  position: relative;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-strong);
+  font-size: 14px;
+  padding: 0;
+}
+
+.student-top-nav__profile {
+  width: 42px;
+  height: 42px;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--border-soft);
+  cursor: pointer;
+}
+
+.student-nav-link::after,
+.student-nav-chat-btn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--motion-duration-fast) var(--motion-ease);
+  opacity: 0.65;
+}
+
+.student-nav-link:hover::after,
+.student-nav-link.active::after,
+.student-nav-chat-btn:hover::after,
+.student-nav-chat-btn.active::after {
+  transform: scaleX(1);
+}
+
+.student-top-nav,
+.student-top-nav__profile,
+.student-nav-link,
+.student-nav-chat-btn {
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease),
+    box-shadow var(--motion-duration-fast) var(--motion-ease),
+    border-color var(--motion-duration-fast) var(--motion-ease),
+    background-color var(--motion-duration-fast) var(--motion-ease),
+    color var(--motion-duration-fast) var(--motion-ease),
+    opacity var(--motion-duration-fast) var(--motion-ease);
+}
+
+.student-top-nav__profile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.12);
+}
+
+.student-top-nav__profile:focus-visible,
+.student-nav-link:focus-visible,
+.student-nav-chat-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .student-top-nav {
+    padding: 0 16px;
+  }
+
+  .student-top-nav__links {
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+}

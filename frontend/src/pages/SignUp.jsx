@@ -48,10 +48,7 @@ const SignUp = () => {
         teacherBio: isTeacher ? form.teacherBio : "",
       };
 
-      const res = await axios.post(
-        "http://localhost:3000/api/auth/register",
-        payload
-      );
+      const res = await axios.post("http://localhost:3000/api/auth/register", payload);
 
       if (res.data.success) {
         login(res.data.user);
@@ -112,7 +109,7 @@ const SignUp = () => {
             <input
               name="password"
               type="password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               value={form.password}
               onChange={onChange}
               required
@@ -121,19 +118,7 @@ const SignUp = () => {
 
           <div className="field">
             <label>Role</label>
-            <select
-              name="role"
-              value={form.role}
-              onChange={onChange}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: "10px",
-                border: "1px solid #ddd",
-                fontSize: "14px",
-                background: "white",
-              }}
-            >
+            <select name="role" value={form.role} onChange={onChange}>
               <option value="student">Student</option>
               <option value="teacher">Teacher</option>
             </select>
@@ -168,9 +153,8 @@ const SignUp = () => {
 
               <div className="field">
                 <label>Teacher Bio</label>
-                <input
+                <textarea
                   name="teacherBio"
-                  type="text"
                   placeholder="Tell students about your teaching background"
                   value={form.teacherBio}
                   onChange={onChange}
@@ -208,13 +192,7 @@ const SignUp = () => {
         </form>
 
         <p className="footer-text" style={{ marginTop: 14 }}>
-          Already have an account?{" "}
-          <span
-            style={{ color: "black", cursor: "pointer", fontWeight: 600 }}
-            onClick={() => navigate("/login")}
-          >
-            Login
-          </span>
+          Already have an account? <span className="auth-link" onClick={() => navigate("/login")}>Login</span>
         </p>
       </div>
     </div>

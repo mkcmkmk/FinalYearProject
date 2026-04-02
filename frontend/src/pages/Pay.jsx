@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 import axios from "axios";
+import StudentTopNav from "../components/StudentTopNav";
 import { getInstruments } from "../data/courseCatalog";
 import "./Pay.css";
 
@@ -146,6 +147,8 @@ const Pay = () => {
 
   return (
     <div className="pay-page">
+      <StudentTopNav active="plans" />
+
       <div className="pay-shell">
         <div className="pay-card pay-card--main">
           <div className="pay-head">
@@ -307,4 +310,3 @@ const Pay = () => {
 };
 
 export default Pay;
-

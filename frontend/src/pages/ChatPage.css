@@ -74,7 +74,7 @@
   display: grid;
   grid-template-columns: 340px 1fr;
   gap: 18px;
-  min-height: calc(100vh - 170px);
+  min-height: calc(100vh - 240px);
 }
 
 .chat-sidebar,
@@ -433,3 +433,4 @@
     display: none;
   }
 }
+

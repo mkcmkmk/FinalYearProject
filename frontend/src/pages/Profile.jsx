@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
+import StudentTopNav from "../components/StudentTopNav";
 import "./Profile.css";
 
 const normalizeStatus = (s) => {
@@ -119,10 +120,6 @@ const Profile = () => {
     navigate("/login");
   };
 
-  const goHome = () => {
-    navigate("/student-dashboard");
-  };
-
   const instrument = sub?.instrument || DASH;
   const level = sub?.level || DASH;
   const plan = sub?.plan || DASH;
@@ -135,6 +132,7 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="hp-page">
+        <StudentTopNav active="home" />
         <div className="hp-shell">
           <div className="hp-card">Loading...</div>
         </div>
@@ -145,6 +143,7 @@ const Profile = () => {
   if (err) {
     return (
       <div className="hp-page">
+        <StudentTopNav active="home" />
         <div className="hp-shell">
           <div className="hp-card">
             <div className="hp-alert hp-alert--error">{err}</div>
@@ -161,26 +160,7 @@ const Profile = () => {
 
   return (
     <div className="hp-page">
-      <header className="hp-topbar hp-topbar--light">
-        <div className="hp-brand hp-brand--light">
-          <div className="hp-mark hp-mark--light">H</div>
-          <span>Harmoniq</span>
-        </div>
-
-        <div className="hp-top-actions hp-top-actions--light">
-          <button className="hp-ghost hp-ghost--light" onClick={goHome}>
-            homepage
-          </button>
-
-          <button className="hp-ghost hp-ghost--light" onClick={() => navigate("/chat")}>
-            chat
-          </button>
-
-          <button className="hp-ghost hp-ghost--light" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <StudentTopNav active="home" />
 
       <div className="hp-shell">
         <aside className="hp-left">

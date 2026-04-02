@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
+import AppTopNav from "../components/AppTopNav";
 import "./ChatPage.css";
 
 const CHAT_API = "http://localhost:3000/api/chat";
@@ -18,8 +18,7 @@ const getRoomTypeLabel = (roomType) =>
   roomType === "teachers" ? "Teacher lounge" : "Group room";
 
 const ChatPage = () => {
-  const { user, logout, login } = useAuth();
-  const navigate = useNavigate();
+  const { user, login } = useAuth();
   const token = localStorage.getItem("token");
   const bottomRef = useRef(null);
 
@@ -145,22 +144,19 @@ const ChatPage = () => {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
-  const goHome = () => {
-    if (user?.role === "teacher") navigate("/teacher-dashboard");
-    else navigate("/student-dashboard");
-  };
-
   if (loadingRooms) {
     return <div className="chat-loading">Loading chat...</div>;
   }
 
+  const navItems =
+    user?.role === "teacher"
+      ? ["dashboard", "chat", "profile"]
+      : ["dashboard", "chat", "profile", "pay"];
+
   return (
     <div className="chat-page">
+      <AppTopNav items={navItems} />
+
       <header className="chat-topbar">
         <div>
           <p className="chat-kicker">Harmoniq Chat</p>
@@ -170,10 +166,6 @@ const ChatPage = () => {
               ? "Talk with your students inside each teaching group and coordinate with other teachers in the lounge."
               : "Stay in touch with your teacher and classmates inside your group room."}
           </p>
-        </div>
-        <div className="chat-top-actions">
-          <button className="chat-btn chat-btn--ghost" onClick={goHome}>Back to dashboard</button>
-          <button className="chat-btn" onClick={handleLogout}>Logout</button>
         </div>
       </header>
 
@@ -208,7 +200,9 @@ const ChatPage = () => {
                       <strong>{room.title}</strong>
                       <span>{room.subtitle}</span>
                     </div>
-                    <span className="chat-room-badge">{room.roomType === "teachers" ? "Lounge" : "Group"}</span>
+                    <span className="chat-room-badge">
+                      {room.roomType === "teachers" ? "Lounge" : "Group"}
+                    </span>
                   </div>
                   <div className="chat-room-meta">{room.participants?.length || 0} participants</div>
                 </button>
@@ -272,9 +266,7 @@ const ChatPage = () => {
                   const mine = String(message.sender?._id || message.sender?.id || "") === String(currentUserId);
                   return (
                     <article key={message._id} className={mine ? "chat-message-row mine" : "chat-message-row"}>
-                      {!mine ? (
-                        <div className="chat-avatar">{getInitial(message.sender?.name)}</div>
-                      ) : null}
+                      {!mine ? <div className="chat-avatar">{getInitial(message.sender?.name)}</div> : null}
                       <div className={mine ? "chat-bubble mine" : "chat-bubble"}>
                         <div className="chat-bubble-head">
                           <div className="chat-bubble-meta">
@@ -285,7 +277,11 @@ const ChatPage = () => {
                         </div>
                         <p>{message.body}</p>
                       </div>
-                      {mine ? <div className="chat-avatar chat-avatar--mine">{getInitial(message.sender?.name || user?.name)}</div> : null}
+                      {mine ? (
+                        <div className="chat-avatar chat-avatar--mine">
+                          {getInitial(message.sender?.name || user?.name)}
+                        </div>
+                      ) : null}
                     </article>
                   );
                 })}

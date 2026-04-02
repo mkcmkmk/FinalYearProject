@@ -41,14 +41,14 @@ const Login = () => {
     <div className="auth-page">
       {/* Top Welcome */}
       <div className="welcome">
-        <h1>Welcome to harmoniq</h1>
+        <h1>Welcome to Harmoniq</h1>
         <p>Sign in to continue to your dashboard</p>
       </div>
 
       {/* Card */}
       <div className="auth-card">
         <h2>Get Started</h2>
-        <p className="subtitle">signup to create account</p>
+        <p className="subtitle">Sign up to create your account</p>
 
         {/* Tabs */}
         <div className="tabs">
@@ -86,7 +86,7 @@ const Login = () => {
             <label>Password</label>
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -107,3 +107,4 @@ const Login = () => {
 };
 
 export default Login;
+

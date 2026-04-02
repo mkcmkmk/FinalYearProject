@@ -7,6 +7,48 @@
   --motion-duration-base: 320ms;
   --motion-duration-slow: 520ms;
   --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --app-bg:
+    radial-gradient(circle at top left, rgba(129, 140, 248, 0.16), transparent 28%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  --surface: rgba(255, 255, 255, 0.9);
+  --surface-strong: rgba(255, 255, 255, 0.96);
+  --surface-soft: rgba(248, 250, 255, 0.88);
+  --surface-dark: #111827;
+  --text-strong: #101623;
+  --text-muted: #5f6b85;
+  --border-soft: rgba(99, 102, 241, 0.12);
+  --border-strong: rgba(99, 102, 241, 0.2);
+  --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.08);
+  --shadow-strong: 0 24px 70px rgba(15, 23, 42, 0.12);
+  --brand: #4f46e5;
+  --brand-deep: #312e81;
+  --brand-soft: rgba(79, 70, 229, 0.08);
+  --success-bg: #dcfce7;
+  --success-text: #166534;
+  --error-bg: #fee2e2;
+  --error-text: #991b1b;
+  --radius-xl: 28px;
+  --radius-lg: 22px;
+  --radius-md: 18px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--text-strong);
+  background: var(--app-bg);
+  font-family: "Inter", Arial, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 @keyframes fade-up {

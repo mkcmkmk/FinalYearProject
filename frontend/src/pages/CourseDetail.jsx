@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
+import StudentTopNav from "../components/StudentTopNav";
 import { getCourseBySlug } from "../data/courseCatalog";
 import "./CourseDetail.css";
 
@@ -72,7 +73,8 @@ const CourseDetail = () => {
   if (!course) {
     return (
       <div className="course-page">
-        <div className="course-empty">
+        <StudentTopNav active="courses" />
+        <div className="course-empty course-empty--standalone">
           <h1>Course not found</h1>
           <p>The instrument you selected is not available right now.</p>
           <button className="course-btn" onClick={() => navigate("/student-dashboard")}>
@@ -85,160 +87,164 @@ const CourseDetail = () => {
 
   return (
     <div className="course-page">
-      <header className="course-topbar">
-        <div>
-          <p className="course-kicker">Instrument course</p>
-          <h1>{course.title}</h1>
-          <p className="course-subtitle">{course.description}</p>
-        </div>
+      <StudentTopNav active="courses" />
 
-        <div className="course-actions">
-          <button className="course-btn course-btn--ghost" onClick={() => navigate("/student-dashboard")}>
-            Back
-          </button>
-          <button
-            className="course-btn"
-            onClick={() =>
-              navigate("/pay", {
-                state: {
-                  instrument: course.instrument,
-                  courseName: course.title,
-                },
-              })
-            }
-          >
-            Subscribe now
-          </button>
-        </div>
-      </header>
-
-      <section className="course-hero-card">
-        <div className="course-hero-copy">
-          <div className="course-chip-row">
-            <span>{course.instrument}</span>
-            <span>{course.level}</span>
-            <span>{course.duration}</span>
-            <span>{course.classesPerWeek}</span>
-          </div>
-          <p>
-            This course is designed to help students build technique, consistency, and musical confidence with structured live classes and guided weekly practice.
-          </p>
-        </div>
-
-        <div className="course-hero-media">
-          <img src={course.image} alt={course.instrument} onError={setFallbackImage} />
-        </div>
-      </section>
-
-      <section className="course-grid">
-        <article className="course-card">
-          <p className="course-kicker">What you will learn</p>
-          <h2>Course highlights</h2>
-          <div className="course-list">
-            {course.highlights.map((item) => (
-              <div className="course-list-item" key={item}>{item}</div>
-            ))}
-          </div>
-        </article>
-
-        <article className="course-card">
-          <p className="course-kicker">After the course</p>
-          <h2>Expected outcomes</h2>
-          <div className="course-list">
-            {course.outcomes.map((item) => (
-              <div className="course-list-item" key={item}>{item}</div>
-            ))}
-          </div>
-        </article>
-      </section>
-
-      <section className="course-card">
-        <div className="course-section-head">
+      <div className="course-shell">
+        <header className="course-topbar">
           <div>
-            <p className="course-kicker">Teachers</p>
-            <h2>Available {course.instrument} teachers</h2>
+            <p className="course-kicker">Instrument course</p>
+            <h1>{course.title}</h1>
+            <p className="course-subtitle">{course.description}</p>
           </div>
-          <button
-            className="course-btn course-btn--ghost"
-            onClick={() =>
-              navigate("/pay", {
-                state: {
-                  instrument: course.instrument,
-                  courseName: course.title,
-                },
-              })
-            }
-          >
-            Continue to subscription
-          </button>
-        </div>
 
-        {error ? <div className="course-banner course-banner--error">{error}</div> : null}
-
-        {loadingTeachers ? (
-          <div className="course-empty">Loading available teachers...</div>
-        ) : teachers.length === 0 ? (
-          <div className="course-empty">No teachers are available for this instrument yet.</div>
-        ) : (
-          <div className="course-teacher-grid">
-            {teachers.map((teacher) => (
-              <div className="course-teacher-card" key={teacher.id || teacher._id}>
-                <div className="course-teacher-head">
-                  <div className="course-teacher-avatar">
-                    {teacher.profileImage ? (
-                      <img src={teacher.profileImage} alt={teacher.name} onError={setFallbackImage} />
-                    ) : (
-                      <span>{teacher.name?.charAt(0)?.toUpperCase() || "T"}</span>
-                    )}
-                  </div>
-                  <div>
-                    <h3>{teacher.name}</h3>
-                    <p>{teacher.instrumentExpertise || course.instrument}</p>
-                  </div>
-                </div>
-
-                <div className="course-teacher-meta">
-                  <div>
-                    <span>Experience</span>
-                    <strong>{teacher.yearsOfExperience ?? 0} years</strong>
-                  </div>
-                  <div>
-                    <span>Groups</span>
-                    <strong>{teacher.summary?.groups || 0}</strong>
-                  </div>
-                  <div>
-                    <span>Weekly classes</span>
-                    <strong>{teacher.summary?.weeklyClasses || 0}</strong>
-                  </div>
-                </div>
-
-                <p className="course-teacher-bio">{teacher.teacherBio || "Teacher profile details will appear here soon."}</p>
-
-                <div className="course-teacher-actions">
-                  <button className="course-btn course-btn--ghost" onClick={() => navigate(`/teachers/${teacher.id || teacher._id}`)}>
-                    View profile
-                  </button>
-                  <button
-                    className="course-btn"
-                    onClick={() =>
-                      navigate("/pay", {
-                        state: {
-                          instrument: course.instrument,
-                          courseName: course.title,
-                          teacherName: teacher.name,
-                          teacherId: teacher.id || teacher._id,
-                        },
-                      })
-                    }
-                  >
-                    Subscribe
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="course-actions">
+            <button className="course-btn course-btn--ghost" onClick={() => navigate("/student-dashboard")}>
+              Back
+            </button>
+            <button
+              className="course-btn"
+              onClick={() =>
+                navigate("/pay", {
+                  state: {
+                    instrument: course.instrument,
+                    courseName: course.title,
+                  },
+                })
+              }
+            >
+              Subscribe now
+            </button>
           </div>
-        )}
-      </section>
+        </header>
+
+        <section className="course-hero-card">
+          <div className="course-hero-copy">
+            <div className="course-chip-row">
+              <span>{course.instrument}</span>
+              <span>{course.level}</span>
+              <span>{course.duration}</span>
+              <span>{course.classesPerWeek}</span>
+            </div>
+            <p>
+              This course is designed to help students build technique, consistency, and musical confidence with structured live classes and guided weekly practice.
+            </p>
+          </div>
+
+          <div className="course-hero-media">
+            <img src={course.image} alt={course.instrument} onError={setFallbackImage} />
+          </div>
+        </section>
+
+        <section className="course-grid">
+          <article className="course-card">
+            <p className="course-kicker">What you will learn</p>
+            <h2>Course highlights</h2>
+            <div className="course-list">
+              {course.highlights.map((item) => (
+                <div className="course-list-item" key={item}>{item}</div>
+              ))}
+            </div>
+          </article>
+
+          <article className="course-card">
+            <p className="course-kicker">After the course</p>
+            <h2>Expected outcomes</h2>
+            <div className="course-list">
+              {course.outcomes.map((item) => (
+                <div className="course-list-item" key={item}>{item}</div>
+              ))}
+            </div>
+          </article>
+        </section>
+
+        <section className="course-card">
+          <div className="course-section-head">
+            <div>
+              <p className="course-kicker">Teachers</p>
+              <h2>Available {course.instrument} teachers</h2>
+            </div>
+            <button
+              className="course-btn course-btn--ghost"
+              onClick={() =>
+                navigate("/pay", {
+                  state: {
+                    instrument: course.instrument,
+                    courseName: course.title,
+                  },
+                })
+              }
+            >
+              Continue to subscription
+            </button>
+          </div>
+
+          {error ? <div className="course-banner course-banner--error">{error}</div> : null}
+
+          {loadingTeachers ? (
+            <div className="course-empty">Loading available teachers...</div>
+          ) : teachers.length === 0 ? (
+            <div className="course-empty">No teachers are available for this instrument yet.</div>
+          ) : (
+            <div className="course-teacher-grid">
+              {teachers.map((teacher) => (
+                <div className="course-teacher-card" key={teacher.id || teacher._id}>
+                  <div className="course-teacher-head">
+                    <div className="course-teacher-avatar">
+                      {teacher.profileImage ? (
+                        <img src={teacher.profileImage} alt={teacher.name} onError={setFallbackImage} />
+                      ) : (
+                        <span>{teacher.name?.charAt(0)?.toUpperCase() || "T"}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h3>{teacher.name}</h3>
+                      <p>{teacher.instrumentExpertise || course.instrument}</p>
+                    </div>
+                  </div>
+
+                  <div className="course-teacher-meta">
+                    <div>
+                      <span>Experience</span>
+                      <strong>{teacher.yearsOfExperience ?? 0} years</strong>
+                    </div>
+                    <div>
+                      <span>Groups</span>
+                      <strong>{teacher.summary?.groups || 0}</strong>
+                    </div>
+                    <div>
+                      <span>Weekly classes</span>
+                      <strong>{teacher.summary?.weeklyClasses || 0}</strong>
+                    </div>
+                  </div>
+
+                  <p className="course-teacher-bio">{teacher.teacherBio || "Teacher profile details will appear here soon."}</p>
+
+                  <div className="course-teacher-actions">
+                    <button className="course-btn course-btn--ghost" onClick={() => navigate(`/teachers/${teacher.id || teacher._id}`)}>
+                      View profile
+                    </button>
+                    <button
+                      className="course-btn"
+                      onClick={() =>
+                        navigate("/pay", {
+                          state: {
+                            instrument: course.instrument,
+                            courseName: course.title,
+                            teacherName: teacher.name,
+                            teacherId: teacher.id || teacher._id,
+                          },
+                        })
+                      }
+                    >
+                      Subscribe
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 };

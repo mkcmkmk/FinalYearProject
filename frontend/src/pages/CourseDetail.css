@@ -1,13 +1,20 @@
 .course-page {
   min-height: 100vh;
-  padding: 24px;
   background: linear-gradient(180deg, #f9fafb 0%, #eef2ff 100%);
   color: #111827;
+  padding-bottom: 24px;
+}
+
+.course-shell {
+  max-width: 1200px;
+  margin: 24px auto 0;
+  padding: 0 24px;
 }
 
 .course-topbar,
 .course-hero-card,
-.course-card {
+.course-card,
+.course-empty--standalone {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(99, 102, 241, 0.12);
   border-radius: 24px;
@@ -32,7 +39,8 @@
 }
 
 .course-topbar h1,
-.course-card h2 {
+.course-card h2,
+.course-empty h1 {
   margin: 0;
   font-family: Georgia, "Times New Roman", serif;
 }
@@ -211,6 +219,12 @@
   padding: 16px;
 }
 
+.course-empty--standalone {
+  max-width: 720px;
+  margin: 24px auto 0;
+  padding: 32px 24px;
+}
+
 .course-banner--error {
   background: #fee2e2;
   color: #991b1b;
@@ -219,8 +233,9 @@
 }
 
 @media (max-width: 900px) {
-  .course-page {
-    padding: 16px;
+  .course-shell {
+    margin-top: 16px;
+    padding: 0 16px;
   }
 
   .course-topbar,

@@ -25,6 +25,42 @@ const getTeacherExpertiseList = (teacher) =>
 const matchesInstrumentExpertise = (teacher, instrument) =>
   getTeacherExpertiseList(teacher).includes(normalizeInstrument(instrument));
 
+const isSubscriptionExpired = (subscription) => {
+  if (!subscription?.expiresAt) {
+    return false;
+  }
+
+  return new Date(subscription.expiresAt).getTime() <= Date.now();
+};
+
+const getBlockingSubscription = async (userId) => {
+  const latestSubscription = await Subscription.findOne({ user: userId })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (!latestSubscription) {
+    return null;
+  }
+
+  if (["expired", "none"].includes(latestSubscription.status)) {
+    return null;
+  }
+
+  if (latestSubscription.status === "active" && isSubscriptionExpired(latestSubscription)) {
+    await Subscription.findByIdAndUpdate(latestSubscription._id, {
+      status: "expired",
+      expiresAt: latestSubscription.expiresAt || new Date(),
+    });
+    await User.findByIdAndUpdate(userId, {
+      isMember: false,
+      UpdatedAt: new Date(),
+    });
+    return null;
+  }
+
+  return latestSubscription;
+};
+
 export const createSubscription = async (req, res) => {
   try {
     const { plan, instrument, level, teacherId } = req.body;
@@ -39,6 +75,25 @@ export const createSubscription = async (req, res) => {
 
     if (!allowedLevels.includes(String(level).toLowerCase())) {
       return res.status(400).json({ success: false, message: "Invalid level" });
+    }
+
+    const blockingSubscription = await getBlockingSubscription(req.user._id);
+    if (blockingSubscription) {
+      return res.status(400).json({
+        success: false,
+        message:
+          blockingSubscription.status === "pending"
+            ? "You already have a pending subscription. Please wait for it to be completed or expired before subscribing again."
+            : "You already have an active subscription. You can subscribe again only after it expires.",
+        subscription: {
+          id: blockingSubscription._id,
+          plan: blockingSubscription.plan,
+          instrument: blockingSubscription.instrument,
+          level: blockingSubscription.level || "beginner",
+          status: blockingSubscription.status,
+          expiresAt: blockingSubscription.expiresAt || null,
+        },
+      });
     }
 
     let teacher = null;
