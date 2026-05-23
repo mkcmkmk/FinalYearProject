@@ -1,13 +1,37 @@
+import AdminNotice from "../models/AdminNotice.js";
+import ChatMessage from "../models/ChatMessage.js";
 import ClassSchedule from "../models/ClassSchedule.js";
 import Group from "../models/Group.js";
 import Subscription from "../models/Subscription.js";
+import TeacherRating from "../models/TeacherRating.js";
 import TeacherVerification from "../models/TeacherVerification.js";
 import User from "../models/User.js";
+import { sendTeacherApprovalEmail, sendTeacherRejectionEmail } from "../utils/emailUtils.js";
 
 const planPriceMap = {
   monthly: 2500,
   quarterly: 4000,
   yearly: 10000,
+};
+
+const normalizeNoticeAudience = (value) => {
+  const next = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (["all", "everyone", "users"].includes(next)) {
+    return "all";
+  }
+
+  if (["student", "students", "student-only", "student_only"].includes(next)) {
+    return "student";
+  }
+
+  if (["teacher", "teachers", "teacher-only", "teacher_only"].includes(next)) {
+    return "teacher";
+  }
+
+  return null;
 };
 
 const monthLabel = (date) =>
@@ -70,6 +94,7 @@ export const getAdminDashboard = async (req, res) => {
       teacherVerifications,
       teachers,
       students,
+      notices,
     ] = await Promise.all([
       User.find().sort({ createdAt: -1 }).select("-password").lean(),
       Subscription.find()
@@ -79,9 +104,10 @@ export const getAdminDashboard = async (req, res) => {
         .lean(),
       Group.find().populate("teacher", "name email").sort({ createdAt: -1 }).lean(),
       ClassSchedule.find().sort({ createdAt: -1 }).lean(),
-      TeacherVerification.find().sort({ createdAt: -1 }).lean(),
+      TeacherVerification.find().populate("user", "instrumentExpertise yearsOfExperience teacherBio").sort({ createdAt: -1 }).lean(),
       User.find({ role: "teacher" }).select("-password").lean(),
       User.find({ role: "student" }).select("-password").lean(),
+      AdminNotice.find().sort({ isPinned: -1, createdAt: -1 }).populate("author", "name").lean(),
     ]);
 
     const activeSubscriptions = subscriptions.filter((item) => item.status === "active");
@@ -192,6 +218,17 @@ export const getAdminDashboard = async (req, res) => {
 
     const recentUsers = users.slice(0, 8).map(toSafeUser);
 
+    const recentNotices = notices.slice(0, 6).map((notice) => ({
+      id: notice._id,
+      title: notice.title,
+      message: notice.message,
+      audience: notice.audience,
+      isPinned: Boolean(notice.isPinned),
+      isActive: Boolean(notice.isActive),
+      authorName: notice.author?.name || "Admin",
+      createdAt: notice.createdAt,
+    }));
+
     return res.json({
       success: true,
       summary: {
@@ -218,6 +255,7 @@ export const getAdminDashboard = async (req, res) => {
       groupsOverview,
       recentSchedules,
       recentUsers,
+      recentNotices,
     });
   } catch (error) {
     console.error("getAdminDashboard error:", error);
@@ -250,9 +288,18 @@ export const reviewTeacherVerification = async (req, res) => {
 
       if (status === "approved") {
         userUpdate.role = "teacher";
+        const cleanName = verification.name.replace(/\s+/g, '').toLowerCase();
+        userUpdate.email = `harmoniq${cleanName}@gmail.com`;
       }
 
       await User.findByIdAndUpdate(verification.user, userUpdate);
+
+      // Send Email Notification to Teacher
+      if (status === "approved") {
+        await sendTeacherApprovalEmail(verification.email, verification.name, userUpdate.email, "Test@123");
+      } else if (status === "rejected") {
+        await sendTeacherRejectionEmail(verification.email, verification.name);
+      }
     }
 
     return res.json({ success: true, message: `Teacher request ${status}` });
@@ -306,3 +353,122 @@ export const updateSubscriptionStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+export const removeUserAccount = async (req, res) => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const targetUser = await User.findById(req.params.id).select("_id role name").lean();
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    if (String(targetUser._id) === String(req.user._id)) {
+      return res.status(400).json({ success: false, message: "You cannot remove your own admin account" });
+    }
+
+    if (targetUser.role === "admin") {
+      const adminCount = await User.countDocuments({ role: "admin" });
+      if (adminCount <= 1) {
+        return res.status(400).json({ success: false, message: "At least one admin account must remain" });
+      }
+    }
+
+    if (targetUser.role === "teacher") {
+      const teacherGroups = await Group.find({ teacher: targetUser._id }).select("_id").lean();
+      const groupIds = teacherGroups.map((group) => group._id);
+
+      await Promise.all([
+        ClassSchedule.deleteMany({ teacher: targetUser._id }),
+        ClassSchedule.deleteMany({ group: { $in: groupIds } }),
+        ChatMessage.deleteMany({ sender: targetUser._id }),
+        ChatMessage.deleteMany({ group: { $in: groupIds } }),
+        TeacherVerification.deleteMany({ user: targetUser._id }),
+        TeacherRating.deleteMany({ teacher: targetUser._id }),
+        Subscription.updateMany(
+          { teacher: targetUser._id },
+          {
+            $set: {
+              teacher: null,
+              group: null,
+              groupName: "",
+              status: "pending",
+            },
+          }
+        ),
+        Group.deleteMany({ teacher: targetUser._id }),
+      ]);
+    } else {
+      await Promise.all([
+        Subscription.deleteMany({ user: targetUser._id }),
+        TeacherRating.deleteMany({ student: targetUser._id }),
+        ChatMessage.deleteMany({ sender: targetUser._id }),
+        TeacherVerification.deleteMany({ user: targetUser._id }),
+      ]);
+    }
+
+    await User.findByIdAndDelete(targetUser._id);
+
+    return res.json({
+      success: true,
+      message: `${targetUser.name} has been removed successfully`,
+    });
+  } catch (error) {
+    console.error("removeUserAccount error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const createAdminNotice = async (req, res) => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const title = String(req.body?.title || "").trim();
+    const message = String(req.body?.message || "").trim();
+    const audience = normalizeNoticeAudience(req.body?.audience ?? "all");
+    const isPinned = Boolean(req.body?.isPinned);
+
+    if (!title || !message) {
+      return res.status(400).json({ success: false, message: "Title and message are required" });
+    }
+
+    if (!audience) {
+      return res.status(400).json({ success: false, message: "Invalid notice audience" });
+    }
+
+    const notice = await AdminNotice.create({
+      title,
+      message,
+      audience,
+      isPinned,
+      author: req.user._id,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Notice published successfully",
+      notice,
+    });
+  } catch (error) {
+    console.error("createAdminNotice error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const removeAdminNotice = async (req, res) => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const notice = await AdminNotice.findByIdAndDelete(req.params.id);
+    if (!notice) {
+      return res.status(404).json({ success: false, message: "Notice not found" });
+    }
+
+    return res.json({ success: true, message: "Notice removed successfully" });
+  } catch (error) {
+    console.error("removeAdminNotice error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+

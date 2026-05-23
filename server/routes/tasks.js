@@ -1,0 +1,10 @@
+import express from "express";
+import { createTask, getTeacherTasks } from "../controllers/taskController.js";
+import { protect, authorize } from "../middleware/auth.js";
+
+const router = express.Router();
+
+router.post("/", protect, authorize("teacher", "admin"), createTask);
+router.get("/teacher", protect, authorize("teacher", "admin"), getTeacherTasks);
+
+export default router;

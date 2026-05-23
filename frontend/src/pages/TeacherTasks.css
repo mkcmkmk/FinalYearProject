@@ -1,0 +1,9 @@
+/* TeacherTasks.css */
+/* Styles mostly inherited from tailwind classes in the JSX, 
+   but reserving this file for any custom overrides needed. */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}

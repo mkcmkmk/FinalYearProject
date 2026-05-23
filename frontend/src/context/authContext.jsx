@@ -24,6 +24,10 @@ const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(() => {
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.disableAutoSelect();
+    }
+
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");

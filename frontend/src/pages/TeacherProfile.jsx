@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/authContext";
+import StudentLayout from "../components/StudentLayout";
+import TeacherLayout from "../components/TeacherLayout";
+import AdminLayout from "../components/AdminLayout";
 import "./TeacherProfile.css";
 
 const formatReviewDate = (value) => {
@@ -13,12 +16,12 @@ const formatReviewDate = (value) => {
   });
 };
 
-const renderStars = (count) => "?".repeat(count) + "?".repeat(Math.max(0, 5 - count));
+const renderStars = (count) => "★".repeat(count) + "☆".repeat(Math.max(0, 5 - count));
 
 const TeacherProfile = () => {
   const { teacherId } = useParams();
   const navigate = useNavigate();
-  const { user, login, logout } = useAuth();
+  const { user, login } = useAuth();
   const token = localStorage.getItem("token");
 
   const isOwnProfile = !teacherId;
@@ -240,27 +243,20 @@ const TeacherProfile = () => {
   };
 
   const goBack = () => {
-    if (user?.role === "teacher") navigate("/teacher-dashboard");
+    if (user?.role === "admin") navigate("/admin/teachers");
+    else if (user?.role === "teacher") navigate("/teacher-dashboard");
     else navigate("/profile");
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const Layout = user?.role === "admin" ? AdminLayout : (user?.role === "teacher" ? TeacherLayout : StudentLayout);
 
   if (loading) {
-    return <div className="tp-loading">Loading teacher profile...</div>;
-  }
-
-  if (error && !profile) {
     return (
-      <div className="tp-loading">
-        <div>
-          <p>{error}</p>
-          <button className="tp-btn tp-btn--ghost" onClick={goBack}>Go back</button>
+      <Layout>
+        <div className="bg-white rounded-[2rem] p-8 shadow-sm text-center flex items-center justify-center h-full text-gray-400 font-bold text-sm">
+          Loading teacher profile...
         </div>
-      </div>
+      </Layout>
     );
   }
 
@@ -270,238 +266,339 @@ const TeacherProfile = () => {
   const viewerRating = ratings.viewer || {};
 
   return (
-    <div className="tp-page">
-      <header className="tp-topbar">
-        <div>
-          <p className="tp-kicker">Teacher Profile</p>
-          <h1>{isOwnProfile ? "Manage your teaching profile" : `Meet ${teacher.name || "this teacher"}`}</h1>
-          <p className="tp-subtitle">
+    <Layout>
+      <div className="flex-1 flex flex-col min-w-0 gap-4 h-full overflow-y-auto pt-4 pr-2 custom-scrollbar pb-6">
+        
+        {/* Welcome Header */}
+        <header className="shrink-0 bg-white rounded-[2rem] p-7 shadow-sm flex flex-col gap-1 justify-center relative overflow-hidden border border-gray-50/50">
+          <p className="text-[11px] font-bold text-purple-500 uppercase tracking-widest mb-1">Teacher Profile</p>
+          <h1 className="text-2xl font-extrabold text-gray-900 leading-none">{isOwnProfile ? "Manage your teaching profile" : `Meet ${teacher.name || "this teacher"}`}</h1>
+          <p className="text-xs text-gray-400 font-semibold mt-1 max-w-2xl leading-relaxed">
             {isOwnProfile
               ? "Update the details students see before they join your classes."
               : "Students can review the teacher's expertise, experience, ratings, and current class involvement here."}
           </p>
-        </div>
+          
+          <div className="absolute right-6 top-6 flex gap-2">
+            <button className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-[1rem] text-xs font-bold transition-colors" onClick={goBack}>
+              Back
+            </button>
+          </div>
+        </header>
 
-        <div className="tp-actions">
-          <button className="tp-btn tp-btn--ghost" onClick={goBack}>Back</button>
-          {isOwnProfile ? <button className="tp-btn" onClick={handleLogout}>Logout</button> : null}
-        </div>
-      </header>
+        {error && <div className="p-4 bg-red-50 text-red-600 rounded-[1.25rem] text-xs font-bold">{error}</div>}
+        {message && <div className="p-4 bg-green-50 text-green-600 rounded-[1.25rem] text-xs font-bold">{message}</div>}
 
-      {error ? <div className="tp-banner tp-banner--error">{error}</div> : null}
-      {message ? <div className="tp-banner tp-banner--ok">{message}</div> : null}
-
-      <div className="tp-grid">
-        <aside className="tp-sidebar">
-          <section className="tp-card tp-hero-card">
-            <div className="tp-photo">
-              {teacher.profileImage ? (
-                <img src={teacher.profileImage} alt={teacher.name || "Teacher"} />
-              ) : (
-                <div className="tp-photo-fallback">{String(teacher.name || "T").charAt(0).toUpperCase()}</div>
-              )}
+        <div className="shrink-0 grid grid-cols-3 gap-4">
+          {/* Left Column: Sidebar Cards (Profile Card & Stats Card) */}
+          <div className="flex flex-col gap-4 col-span-1">
+            
+            {/* Profile Info Card */}
+            <div className="bg-white rounded-[2rem] p-6 shadow-sm flex flex-col items-center text-center border border-gray-50/50">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center mb-4 border-2 border-gray-100 shadow-inner">
+                {teacher.profileImage ? (
+                  <img src={teacher.profileImage} alt={teacher.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-3xl font-extrabold text-gray-400">{(teacher.name?.[0] || "T").toUpperCase()}</div>
+                )}
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">{teacher.name}</h2>
+              <p className="text-xs text-purple-500 font-bold uppercase mt-0.5 tracking-wider">Instructor</p>
+              
+              <div className="w-full space-y-3 mt-6 border-t border-gray-50 pt-4 text-left">
+                <div className="flex justify-between items-center text-xs font-bold">
+                  <span className="text-gray-400">Expertise</span>
+                  <span className="text-gray-800">{teacher.instrumentExpertise || "Not set"}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs font-bold border-t border-gray-50 pt-3">
+                  <span className="text-gray-400">Experience</span>
+                  <span className="text-gray-800">{teacher.yearsOfExperience ?? 0} years</span>
+                </div>
+                <div className="flex justify-between items-center text-xs font-bold border-t border-gray-50 pt-3">
+                  <span className="text-gray-400">Rating</span>
+                  <span className="text-gray-800">{ratings.totalRatings ? `${ratings.averageRating}/5` : "No ratings"}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs font-bold border-t border-gray-50 pt-3">
+                  <span className="text-gray-400">Contact</span>
+                  <span className="text-gray-800 truncate max-w-[120px]">{teacher.contactNumber || "Not shared"}</span>
+                </div>
+              </div>
             </div>
-            <h2>{teacher.name}</h2>
-            <p className="tp-role">Teacher</p>
-            <div className="tp-mini-list">
-              <div><span>Expertise</span><b>{teacher.instrumentExpertise || "Not set"}</b></div>
-              <div><span>Experience</span><b>{teacher.yearsOfExperience ?? 0} years</b></div>
-              <div><span>Rating</span><b>{ratings.totalRatings ? `${ratings.averageRating}/5` : "No ratings yet"}</b></div>
-              <div><span>Contact</span><b>{teacher.contactNumber || "Not shared"}</b></div>
+
+            {/* Quick Summary Card */}
+            <div className="bg-white rounded-[2rem] p-6 shadow-sm flex flex-col gap-4 border border-gray-50/50">
+              <h3 className="text-sm font-bold text-gray-900 mb-1">Teaching Metrics</h3>
+              <div className="flex justify-between items-center text-xs font-bold">
+                <span className="text-gray-400">Groups Managed</span>
+                <strong className="text-gray-800 text-sm font-extrabold">{summary.groups || 0}</strong>
+              </div>
+              <div className="flex justify-between items-center text-xs font-bold border-t border-gray-50 pt-3">
+                <span className="text-gray-400">Total Students</span>
+                <strong className="text-gray-800 text-sm font-extrabold">{summary.assignedStudents || 0}</strong>
+              </div>
+              <div className="flex justify-between items-center text-xs font-bold border-t border-gray-50 pt-3">
+                <span className="text-gray-400">Weekly Classes</span>
+                <strong className="text-gray-800 text-sm font-extrabold">{summary.weeklyClasses || 0}</strong>
+              </div>
+              <div className="flex justify-between items-center text-xs font-bold border-t border-gray-50 pt-3">
+                <span className="text-gray-400">Total Reviews</span>
+                <strong className="text-gray-800 text-sm font-extrabold">{ratings.totalRatings || 0}</strong>
+              </div>
             </div>
-          </section>
 
-          <section className="tp-card">
-            <div className="tp-stat-row"><span>Groups</span><strong>{summary.groups || 0}</strong></div>
-            <div className="tp-stat-row"><span>Students</span><strong>{summary.assignedStudents || 0}</strong></div>
-            <div className="tp-stat-row"><span>Weekly classes</span><strong>{summary.weeklyClasses || 0}</strong></div>
-            <div className="tp-stat-row"><span>Total ratings</span><strong>{ratings.totalRatings || 0}</strong></div>
-          </section>
-        </aside>
+          </div>
 
-        <main className="tp-main">
-          <section className="tp-card">
-            <div className="tp-section-head">
+          {/* Right Column: Detailed Info, Feedback & Actions */}
+          <div className="col-span-2 flex flex-col gap-4">
+            
+            {/* Bio Card */}
+            <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-50/50 flex flex-col gap-4">
               <div>
-                <p className="tp-section-kicker">About</p>
-                <h2>Teaching Details</h2>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Details</p>
+                <h2 className="text-lg font-bold text-gray-900">Teaching Biography</h2>
               </div>
+              <p className="text-xs text-gray-500 font-semibold leading-relaxed bg-[#f8f9fb] p-5 rounded-[1.25rem] border border-gray-50">
+                {teacher.teacherBio || "No biography added yet."}
+              </p>
             </div>
 
-            <div className="tp-detail-grid">
-              <div className="tp-detail-box"><span>Email</span><b>{teacher.email || "Not shared"}</b></div>
-              <div className="tp-detail-box"><span>Instrument Expertise</span><b>{teacher.instrumentExpertise || "Not set"}</b></div>
-              <div className="tp-detail-box"><span>Years of Experience</span><b>{teacher.yearsOfExperience ?? 0}</b></div>
-              <div className="tp-detail-box"><span>Contact Number</span><b>{teacher.contactNumber || "Not shared"}</b></div>
-              <div className="tp-detail-box tp-detail-box--wide"><span>Teacher Bio</span><b>{teacher.teacherBio || "No bio added yet."}</b></div>
-            </div>
-          </section>
-
-          <section className="tp-card">
-            <div className="tp-section-head">
+            {/* Ratings / Reviews Card */}
+            <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-50/50 flex flex-col gap-6">
               <div>
-                <p className="tp-section-kicker">Ratings</p>
-                <h2>Student Feedback</h2>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Ratings</p>
+                <h2 className="text-lg font-bold text-gray-900">Student Feedback</h2>
               </div>
-            </div>
 
-            <div className="tp-rating-summary">
-              <div className="tp-rating-score">
-                <strong>{ratings.totalRatings ? ratings.averageRating.toFixed(1) : "0.0"}</strong>
-                <span>{ratings.totalRatings ? renderStars(Math.round(ratings.averageRating)) : "No reviews yet"}</span>
-                <small>{ratings.totalRatings} total ratings</small>
-              </div>
-              <div className="tp-rating-note">
-                <p>{viewerRating.message || "Students can submit ratings every Saturday."}</p>
-              </div>
-            </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-[#f8f9fb] p-5 rounded-[1.25rem] border border-gray-50 text-center flex flex-col justify-center items-center gap-1.5 col-span-1">
+                  <strong className="text-4xl font-extrabold text-gray-900 leading-none">
+                    {ratings.totalRatings ? ratings.averageRating.toFixed(1) : "0.0"}
+                  </strong>
+                  <span className="text-amber-500 text-xs font-bold tracking-widest">
+                    {ratings.totalRatings ? renderStars(Math.round(ratings.averageRating)) : "★★★★★"}
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                    {ratings.totalRatings} total ratings
+                  </span>
+                </div>
 
-            {ratings.recentRatings?.length ? (
-              <div className="tp-review-list">
-                {ratings.recentRatings.map((review) => (
-                  <article className="tp-review-card" key={review.id}>
-                    <div className="tp-review-head">
-                      <div>
-                        <strong>{review.student?.name || "Student"}</strong>
-                        <span>{formatReviewDate(review.ratedAt)}</span>
-                      </div>
-                      <b>{renderStars(review.score)}</b>
-                    </div>
-                    <p>{review.feedback || "No written feedback provided."}</p>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="tp-empty">No ratings submitted yet.</div>
-            )}
-          </section>
-
-          {!isOwnProfile && user?.role === "student" ? (
-            <section className="tp-card">
-              <div className="tp-section-head">
-                <div>
-                  <p className="tp-section-kicker">Rate Teacher</p>
-                  <h2>Saturday Rating Window</h2>
+                <div className="bg-[#f8f9fb] p-5 rounded-[1.25rem] border border-gray-50 flex items-center justify-center col-span-2 text-center">
+                  <p className="text-xs text-gray-400 font-bold leading-relaxed italic">
+                    "{viewerRating.message || "Students can submit ratings every Saturday."}"
+                  </p>
                 </div>
               </div>
 
-              <p className="tp-rating-help">{viewerRating.message || "Students can submit ratings every Saturday."}</p>
+              {/* Recent Review Cards */}
+              <div className="space-y-3">
+                {ratings.recentRatings?.length ? (
+                  ratings.recentRatings.map((review) => (
+                    <article className="p-4 bg-[#f8f9fb] border border-gray-50 rounded-[1.25rem] flex flex-col gap-2" key={review.id}>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <strong className="text-xs font-bold text-gray-800 block truncate">{review.student?.name || "Student"}</strong>
+                          <span className="text-[10px] text-gray-400 font-semibold block mt-0.5">{formatReviewDate(review.ratedAt)}</span>
+                        </div>
+                        <span className="text-amber-500 text-xs tracking-wider font-bold">
+                          {renderStars(review.score)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 font-medium leading-relaxed italic bg-white p-2.5 rounded-[0.75rem] border border-gray-50">
+                        "{review.feedback || "No written feedback provided."}"
+                      </p>
+                    </article>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-gray-400 font-bold text-xs bg-[#f8f9fb] rounded-[1.25rem] border border-gray-50">No student reviews submitted yet.</div>
+                )}
+              </div>
+            </div>
 
-              {viewerRating.isAssignedStudent ? (
-                <form className="tp-form" onSubmit={handleRatingSubmit}>
-                  <div className="tp-star-row" role="radiogroup" aria-label="Teacher rating">
-                    {[1, 2, 3, 4, 5].map((score) => (
-                      <button
-                        key={score}
-                        type="button"
-                        className={ratingForm.score >= score ? "tp-star-btn active" : "tp-star-btn"}
-                        onClick={() => setRatingForm((prev) => ({ ...prev, score }))}
+            {/* Saturday Rating Form Card (Only visible to students looking at another teacher) */}
+            {!isOwnProfile && user?.role === "student" ? (
+              <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-50/50 flex flex-col gap-5">
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Rate Teacher</p>
+                  <h2 className="text-lg font-bold text-gray-900">Weekly Review</h2>
+                </div>
+
+                {viewerRating.isAssignedStudent ? (
+                  <form className="space-y-4" onSubmit={handleRatingSubmit}>
+                    <div className="flex gap-2" role="radiogroup" aria-label="Teacher rating">
+                      {[1, 2, 3, 4, 5].map((score) => (
+                        <button
+                          key={score}
+                          type="button"
+                          className={`w-11 h-11 rounded-[0.75rem] border-2 font-bold text-lg flex items-center justify-center transition-all ${
+                            ratingForm.score >= score 
+                              ? "border-amber-300 bg-amber-50 text-amber-500" 
+                              : "border-gray-100 bg-gray-50 text-gray-300 hover:bg-gray-100/50"
+                          }`}
+                          onClick={() => setRatingForm((prev) => ({ ...prev, score }))}
+                          disabled={!viewerRating.canRate}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Written Feedback</label>
+                      <textarea
+                        value={ratingForm.feedback}
+                        onChange={(event) =>
+                          setRatingForm((prev) => ({ ...prev, feedback: event.target.value }))
+                        }
+                        rows="3"
+                        maxLength="500"
+                        className="p-3 border border-gray-100 bg-[#f8f9fb] rounded-[1rem] text-xs font-bold placeholder-gray-300 focus:outline-none focus:border-gray-200 resize-none"
+                        placeholder="Share what is helping you most in class."
                         disabled={!viewerRating.canRate}
-                      >
-                        ?
-                      </button>
-                    ))}
-                  </div>
+                      />
+                    </div>
 
-                  <label className="tp-span-2">
-                    Feedback
-                    <textarea
-                      value={ratingForm.feedback}
-                      onChange={(event) =>
-                        setRatingForm((prev) => ({ ...prev, feedback: event.target.value }))
-                      }
-                      rows="4"
-                      maxLength="500"
-                      placeholder="Share what is helping you most in class."
-                      disabled={!viewerRating.canRate}
-                    />
-                  </label>
-
-                  <div className="tp-form-actions">
                     <button
-                      className="tp-btn"
                       type="submit"
                       disabled={ratingSaving || !viewerRating.canRate || !ratingForm.score}
+                      className="px-5 py-3.5 bg-[#1e1e1e] hover:bg-black text-white disabled:bg-gray-100 disabled:text-gray-400 rounded-[1.25rem] text-xs font-bold tracking-wider uppercase transition-colors"
                     >
                       {ratingSaving ? "Saving rating..." : viewerRating.todayRating ? "Update Rating" : "Submit Rating"}
                     </button>
+                  </form>
+                ) : (
+                  <div className="text-center py-6 text-gray-400 font-bold text-xs bg-[#f8f9fb] rounded-[1.25rem] border border-gray-50">
+                    You can only rate the teacher assigned to your class group.
                   </div>
-                </form>
-              ) : (
-                <div className="tp-empty">You can only rate the teacher currently assigned to your subscription.</div>
-              )}
-            </section>
-          ) : null}
+                )}
+              </div>
+            ) : null}
 
-          <section className="tp-card">
-            <div className="tp-section-head">
+            {/* Current Classes List */}
+            <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-50/50 flex flex-col gap-4">
               <div>
-                <p className="tp-section-kicker">Teaching Groups</p>
-                <h2>Current Classes</h2>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Classes</p>
+                <h2 className="text-lg font-bold text-gray-900">Current Groups</h2>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {profile?.groups?.length ? (
+                  profile.groups.map((group) => (
+                    <article className="p-4 bg-[#f8f9fb] border border-gray-50 rounded-[1.25rem] flex justify-between items-center" key={group.id}>
+                      <div>
+                        <strong className="text-xs font-bold text-gray-800 block truncate">{group.groupName}</strong>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mt-0.5">{group.instrument}</span>
+                      </div>
+                      <span className="px-2.5 py-1 bg-white border border-gray-100 rounded-full text-[10px] font-bold text-gray-500">
+                        {group.filled}/{group.capacity} students
+                      </span>
+                    </article>
+                  ))
+                ) : (
+                  <div className="col-span-2 text-center py-6 text-gray-400 font-bold text-xs bg-[#f8f9fb] rounded-[1.25rem] border border-gray-50">
+                    No active training groups yet.
+                  </div>
+                )}
               </div>
             </div>
 
-            {profile?.groups?.length ? (
-              <div className="tp-group-grid">
-                {profile.groups.map((group) => (
-                  <article className="tp-group-card" key={group.id}>
-                    <h3>{group.groupName}</h3>
-                    <p>{group.instrument}</p>
-                    <div className="tp-group-meta">{group.filled}/{group.capacity} students</div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <div className="tp-empty">No groups assigned yet.</div>
-            )}
-          </section>
-
-          {isOwnProfile && (
-            <section className="tp-card">
-              <div className="tp-section-head">
+            {/* Edit Profile Form (Only for own teacher profile) */}
+            {isOwnProfile && (
+              <div className="bg-white rounded-[2rem] p-7 shadow-sm border border-gray-50/50 flex flex-col gap-6">
                 <div>
-                  <p className="tp-section-kicker">Edit</p>
-                  <h2>Update Teacher Profile</h2>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Edit Info</p>
+                  <h2 className="text-lg font-bold text-gray-900">Update Profile Details</h2>
                 </div>
+
+                <form className="space-y-4" onSubmit={handleSave}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Full Name</label>
+                      <input name="name" value={form.name} onChange={handleChange} className="p-3 border border-gray-100 bg-[#f8f9fb] rounded-[1rem] text-xs font-bold placeholder-gray-300 focus:outline-none focus:border-gray-200" required />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Contact Number</label>
+                      <input name="contactNumber" value={form.contactNumber} onChange={handleChange} className="p-3 border border-gray-100 bg-[#f8f9fb] rounded-[1rem] text-xs font-bold placeholder-gray-300 focus:outline-none focus:border-gray-200" placeholder="98xxxxxxxx" />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Instrument Expertise</label>
+                      <input name="instrumentExpertise" value={form.instrumentExpertise} onChange={handleChange} className="p-3 border border-gray-100 bg-[#f8f9fb] rounded-[1rem] text-xs font-bold placeholder-gray-300 focus:outline-none focus:border-gray-200" required />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Years of Experience</label>
+                      <input name="yearsOfExperience" type="number" min="0" value={form.yearsOfExperience} onChange={handleChange} className="p-3 border border-gray-100 bg-[#f8f9fb] rounded-[1rem] text-xs font-bold placeholder-gray-300 focus:outline-none focus:border-gray-200" required />
+                    </div>
+
+                    <div className="flex flex-col gap-2 col-span-2">
+                      <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Upload Profile Picture</label>
+                      <div className="flex items-center gap-6 p-4 border-2 border-dashed border-gray-100 rounded-[1.5rem] bg-[#f8f9fb] hover:bg-gray-50/55 transition-colors relative">
+                        <div className="w-16 h-16 rounded-full overflow-hidden bg-white flex items-center justify-center border-2 border-gray-100 shadow-sm relative group cursor-pointer">
+                          {form.profileImage ? (
+                            <img src={form.profileImage} alt="Preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="text-xl font-extrabold text-gray-400">{(form.name?.[0] || user?.name?.[0] || "T").toUpperCase()}</div>
+                          )}
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1.5">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            id="teacher-avatar-upload" 
+                            className="hidden" 
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert("File size must be less than 2MB.");
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setForm((prev) => ({ ...prev, profileImage: reader.result }));
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                          <label 
+                            htmlFor="teacher-avatar-upload" 
+                            className="w-fit px-4 py-2 bg-white border border-gray-200 hover:border-black rounded-xl font-bold text-xs text-gray-700 cursor-pointer shadow-sm transition-all"
+                          >
+                            Choose Image File
+                          </label>
+                          <span className="text-[11px] text-gray-400 font-medium">Supports JPG, PNG, GIF up to 2MB.</span>
+                        </div>
+                        {form.profileImage && (
+                          <button 
+                            type="button" 
+                            onClick={() => setForm((prev) => ({ ...prev, profileImage: "" }))} 
+                            className="px-3 py-1.5 border border-red-100 hover:bg-red-50 text-red-500 rounded-xl font-bold text-xs transition-colors"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 col-span-2">
+                      <label className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">Teacher Bio</label>
+                      <textarea name="teacherBio" value={form.teacherBio} onChange={handleChange} rows="4" className="p-3 border border-gray-100 bg-[#f8f9fb] rounded-[1rem] text-xs font-bold placeholder-gray-300 focus:outline-none focus:border-gray-200 resize-none" required />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={saving} className="px-5 py-3.5 bg-[#1e1e1e] hover:bg-black text-white rounded-[1.25rem] text-xs font-bold tracking-wider uppercase transition-colors">
+                    {saving ? "Saving..." : "Save Changes"}
+                  </button>
+                </form>
               </div>
+            )}
 
-              <form className="tp-form" onSubmit={handleSave}>
-                <div className="tp-form-grid">
-                  <label>
-                    Full Name
-                    <input name="name" value={form.name} onChange={handleChange} required />
-                  </label>
-                  <label>
-                    Contact Number
-                    <input name="contactNumber" value={form.contactNumber} onChange={handleChange} placeholder="98xxxxxxxx" />
-                  </label>
-                  <label>
-                    Instrument Expertise
-                    <input name="instrumentExpertise" value={form.instrumentExpertise} onChange={handleChange} required />
-                  </label>
-                  <label>
-                    Years of Experience
-                    <input name="yearsOfExperience" type="number" min="0" value={form.yearsOfExperience} onChange={handleChange} required />
-                  </label>
-                  <label className="tp-span-2">
-                    Profile Image URL
-                    <input name="profileImage" value={form.profileImage} onChange={handleChange} placeholder="https://..." />
-                  </label>
-                  <label className="tp-span-2">
-                    Teacher Bio
-                    <textarea name="teacherBio" value={form.teacherBio} onChange={handleChange} rows="5" required />
-                  </label>
-                </div>
+          </div>
+        </div>
 
-                <div className="tp-form-actions">
-                  <button className="tp-btn" type="submit" disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
-                </div>
-              </form>
-            </section>
-          )}
-        </main>
       </div>
-    </div>
+    </Layout>
   );
 };
 

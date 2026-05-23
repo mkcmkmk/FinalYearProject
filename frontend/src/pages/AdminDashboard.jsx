@@ -23,6 +23,7 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
 } from "recharts";
+import AdminLayout from "../components/AdminLayout";
 
 const API_BASE = "http://localhost:3000/api/admin";
 const COLORS = ["#2b6fff", "#f59e0b", "#22c55e", "#a855f7", "#ef4444", "#14b8a6"];
@@ -48,6 +49,15 @@ const AdminDashboard = () => {
   const [search, setSearch] = useState("");
   const [busyVerificationId, setBusyVerificationId] = useState("");
   const [busySubscriptionId, setBusySubscriptionId] = useState("");
+  const [busyUserId, setBusyUserId] = useState("");
+  const [publishingNotice, setPublishingNotice] = useState(false);
+  const [busyNoticeId, setBusyNoticeId] = useState("");
+  const [noticeForm, setNoticeForm] = useState({
+    title: "",
+    message: "",
+    audience: "all",
+    isPinned: false,
+  });
 
   const authHeaders = useMemo(
     () => ({ headers: { Authorization: `Bearer ${token}` } }),
@@ -120,6 +130,72 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleRemoveUser = async (entry) => {
+    const confirmed = window.confirm(
+      `Remove ${entry.name} (${entry.role}) from Harmoniq? This cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setBusyUserId(entry.id);
+      setError("");
+      setMessage("");
+      const res = await axios.delete(`${API_BASE}/users/${entry.id}`, authHeaders);
+      setMessage(res.data.message || "User removed successfully");
+      await loadDashboard();
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to remove user");
+    } finally {
+      setBusyUserId("");
+    }
+  };
+
+  const handleCreateNotice = async (event) => {
+    event.preventDefault();
+
+    try {
+      setPublishingNotice(true);
+      setError("");
+      setMessage("");
+      const res = await axios.post(`${API_BASE}/notices`, noticeForm, authHeaders);
+      setMessage(res.data.message || "Notice published successfully");
+      setNoticeForm({
+        title: "",
+        message: "",
+        audience: "all",
+        isPinned: false,
+      });
+      await loadDashboard();
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to publish notice");
+    } finally {
+      setPublishingNotice(false);
+    }
+  };
+
+  const handleRemoveNotice = async (noticeId) => {
+    const confirmed = window.confirm("Remove this admin notice?");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setBusyNoticeId(noticeId);
+      setError("");
+      setMessage("");
+      const res = await axios.delete(`${API_BASE}/notices/${noticeId}`, authHeaders);
+      setMessage(res.data.message || "Notice removed successfully");
+      await loadDashboard();
+    } catch (err) {
+      setError(err?.response?.data?.message || "Unable to remove notice");
+    } finally {
+      setBusyNoticeId("");
+    }
+  };
+
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return dashboard?.recentUsers || [];
@@ -149,23 +225,7 @@ const AdminDashboard = () => {
   const paymentTotal = (charts.paymentStatus || []).reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="dash">
-      <aside className="dash-sidebar">
-        <div className="brand-badge">H</div>
-
-        <div className="side-icons">
-          <button className="side-btn active" title="Dashboard">D</button>
-          <button className="side-btn" title="Users">U</button>
-          <button className="side-btn" title="Teachers">T</button>
-          <button className="side-btn" title="Classes">C</button>
-          <button className="side-btn" title="Settings">S</button>
-        </div>
-
-        <div className="side-bottom">
-          <button className="side-btn" title="Logout" onClick={handleLogout}>L</button>
-        </div>
-      </aside>
-
+    <AdminLayout>
       <div className="dash-main">
         <header className="dash-topbar">
           <div className="top-left">
@@ -188,6 +248,7 @@ const AdminDashboard = () => {
                 <div className="user-role">{user?.role || "admin"}</div>
               </div>
             </div>
+
           </div>
         </header>
 
@@ -380,28 +441,57 @@ const AdminDashboard = () => {
                   <div className="empty-note">No pending teacher verifications.</div>
                 ) : (
                   dashboard.pendingTeacherVerifications.map((request) => (
-                    <div className="list-row" key={request._id}>
-                      <div>
-                        <strong>{request.name}</strong>
-                        <p>{request.email} · {request.category}</p>
-                        <small>{formatCurrency(request.pricePerSession)} per session</small>
+                    <div className="list-row" key={request._id} style={{ display: "flex", flexDirection: "column", gap: "12px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "16px", marginBottom: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: "16px", color: "#0f172a", fontWeight: "600" }}>{request.name}</h4>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                            <a href={`mailto:${request.email}`} style={{ color: "#2b6fff", fontSize: "13px", textDecoration: "none", fontWeight: "500" }}>{request.email}</a>
+                            <span style={{ color: "#cbd5e1" }}>â€¢</span>
+                            <span style={{ color: "#64748b", fontSize: "13px" }}>{request.phone || "No contact"}</span>
+                          </div>
+                        </div>
+                        <div className="row-actions" style={{ marginTop: 0 }}>
+                          <button
+                            className="action-btn primary"
+                            disabled={busyVerificationId === request._id}
+                            onClick={() => handleVerification(request._id, "approved")}
+                            style={{ padding: "6px 14px", fontSize: "13px" }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="action-btn danger"
+                            disabled={busyVerificationId === request._id}
+                            onClick={() => handleVerification(request._id, "rejected")}
+                            style={{ padding: "6px 14px", fontSize: "13px" }}
+                          >
+                            Reject
+                          </button>
+                        </div>
                       </div>
-                      <div className="row-actions">
-                        <button
-                          className="action-btn primary"
-                          disabled={busyVerificationId === request._id}
-                          onClick={() => handleVerification(request._id, "approved")}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          className="action-btn danger"
-                          disabled={busyVerificationId === request._id}
-                          onClick={() => handleVerification(request._id, "rejected")}
-                        >
-                          Reject
-                        </button>
+
+                      <div style={{ display: "flex", gap: "16px", borderTop: "1px solid #f1f5f9", paddingTop: "12px", marginTop: "4px" }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "#94a3b8", fontWeight: "600", marginBottom: "6px" }}>Expertise</div>
+                          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                            {(request.user?.instrumentExpertise || request.category).split(',').map(exp => (
+                              <span key={exp} style={{ background: "#eff6ff", color: "#1d4ed8", padding: "3px 8px", borderRadius: "4px", fontSize: "12px", fontWeight: "500" }}>{exp.trim()}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "#94a3b8", fontWeight: "600", marginBottom: "6px" }}>Experience</div>
+                          <div style={{ color: "#334155", fontSize: "13px", fontWeight: "500" }}>{request.user?.yearsOfExperience || 0} Years</div>
+                        </div>
                       </div>
+
+                      {request.user?.teacherBio && (
+                        <div style={{ background: "#f8fafc", borderRadius: "6px", padding: "12px", borderLeft: "3px solid #cbd5e1", marginTop: "4px" }}>
+                          <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.5px", color: "#94a3b8", fontWeight: "600", marginBottom: "4px" }}>Bio</div>
+                          <p style={{ margin: 0, fontSize: "13px", color: "#475569", lineHeight: "1.5" }}>"{request.user.teacherBio}"</p>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -423,7 +513,7 @@ const AdminDashboard = () => {
                     <div className="list-row" key={group.id}>
                       <div>
                         <strong>{group.groupName}</strong>
-                        <p>{group.instrument} · Teacher: {group.teacherName}</p>
+                        <p>{group.instrument}  -  Teacher: {group.teacherName}</p>
                       </div>
                       <div className="occupancy-pill">{group.filled}/{group.capacity}</div>
                     </div>
@@ -500,9 +590,9 @@ const AdminDashboard = () => {
                     <div className="list-row" key={item.id}>
                       <div>
                         <strong>{item.groupName}</strong>
-                        <p>{item.instrument} · {item.dayOfWeek}</p>
+                        <p>{item.instrument}  -  {item.dayOfWeek}</p>
                       </div>
-                      <div className="slot-pill">{item.startTime} - {item.endTime}{item.room ? ` · ${item.room}` : ""}</div>
+                      <div className="slot-pill">{item.startTime} - {item.endTime}{item.room ? `  -  ${item.room}` : ""}</div>
                     </div>
                   ))
                 )}
@@ -526,9 +616,23 @@ const AdminDashboard = () => {
                         <strong>{entry.name}</strong>
                         <p>{entry.email}</p>
                       </div>
-                      <div className="user-badges">
-                        <span className="tag">{entry.role}</span>
-                        <span className="tag muted">{entry.isMember ? "member" : "non-member"}</span>
+                      <div className="row-actions">
+                        <div className="user-badges">
+                          <span className="tag">{entry.role}</span>
+                          <span className="tag muted">{entry.isMember ? "member" : "non-member"}</span>
+                        </div>
+                        <button
+                          className="action-btn danger"
+                          type="button"
+                          disabled={busyUserId === entry.id || entry.id === user?.id}
+                          onClick={() => handleRemoveUser(entry)}
+                        >
+                          {entry.id === user?.id
+                            ? "Current admin"
+                            : busyUserId === entry.id
+                              ? "Removing..."
+                              : "Remove"}
+                        </button>
                       </div>
                     </div>
                   ))
@@ -536,10 +640,106 @@ const AdminDashboard = () => {
               </div>
             </div>
           </section>
+
+          <section className="management-grid management-grid--bottom">
+            <div className="panel">
+              <div className="panel-head">
+                <div>
+                  <div className="panel-title">Admin Notices</div>
+                  <div className="panel-sub">Publish updates for students and teachers</div>
+                </div>
+              </div>
+              <div className="list-surface">
+                <form className="notice-admin-form" onSubmit={handleCreateNotice}>
+                  <input
+                    className="notice-admin-input"
+                    placeholder="Notice title"
+                    value={noticeForm.title}
+                    onChange={(event) => setNoticeForm((prev) => ({ ...prev, title: event.target.value }))}
+                    required
+                  />
+                  <textarea
+                    className="notice-admin-textarea"
+                    placeholder="Write the admin notice here..."
+                    value={noticeForm.message}
+                    onChange={(event) => setNoticeForm((prev) => ({ ...prev, message: event.target.value }))}
+                    rows={4}
+                    required
+                  />
+                  <div className="notice-admin-row">
+                    <select
+                      className="status-select"
+                      value={noticeForm.audience}
+                      onChange={(event) => setNoticeForm((prev) => ({ ...prev, audience: event.target.value }))}
+                    >
+                      <option value="all">All users</option>
+                      <option value="student">Students only</option>
+                      <option value="teacher">Teachers only</option>
+                    </select>
+                    <label className="notice-pin-toggle">
+                      <input
+                        type="checkbox"
+                        checked={noticeForm.isPinned}
+                        onChange={(event) => setNoticeForm((prev) => ({ ...prev, isPinned: event.target.checked }))}
+                      />
+                      Pin notice
+                    </label>
+                  </div>
+                  <button className="action-btn primary" type="submit" disabled={publishingNotice}>
+                    {publishingNotice ? "Publishing..." : "Publish Notice"}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div className="panel">
+              <div className="panel-head">
+                <div>
+                  <div className="panel-title">Recent Notices</div>
+                  <div className="panel-sub">Latest notices visible in teacher and student dashboards</div>
+                </div>
+              </div>
+              <div className="list-surface">
+                {(dashboard?.recentNotices || []).length === 0 ? (
+                  <div className="empty-note">No notices published yet.</div>
+                ) : (
+                  dashboard.recentNotices.map((notice) => (
+                    <div className="list-row notice-row" key={notice.id}>
+                      <div>
+                        <strong>{notice.title}</strong>
+                        <p>{notice.message}</p>
+                        <small>{notice.audience} Â· {formatDate(notice.createdAt)} Â· {notice.authorName}</small>
+                      </div>
+                      <div className="row-actions">
+                        {notice.isPinned ? <span className="tag">pinned</span> : null}
+                        <button
+                          className="action-btn danger"
+                          type="button"
+                          disabled={busyNoticeId === notice.id}
+                          onClick={() => handleRemoveNotice(notice.id)}
+                        >
+                          {busyNoticeId === notice.id ? "Removing..." : "Remove"}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+
+          <div className="dash-bottom-bar">
+            <button className="action-btn danger dash-logout-btn" onClick={handleLogout}>Logout</button>
+          </div>
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 };
 
 export default AdminDashboard;
+
+
+
+
+

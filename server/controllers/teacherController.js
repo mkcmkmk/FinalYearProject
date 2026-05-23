@@ -281,3 +281,90 @@ export const createClassSchedule = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+export const reassignStudentToGroup = async (req, res) => {
+  try {
+    if (!ensureTeacher(req, res)) return;
+
+    const { subscriptionId, newGroupId } = req.body;
+    const teacherId = req.user._id;
+
+    if (!subscriptionId || !newGroupId) {
+      return res.status(400).json({
+        success: false,
+        message: "Student subscription ID and target group ID are required",
+      });
+    }
+
+    // Get the subscription to reassign
+    const subscription = await Subscription.findById(subscriptionId)
+      .populate("user", "name email")
+      .populate("group", "groupName instrument filled capacity");
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Student subscription not found",
+      });
+    }
+
+    // Verify the teacher owns this subscription
+    if (String(subscription.teacher) !== String(teacherId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only reassign your own students",
+      });
+    }
+
+    // Get the new group
+    const newGroup = await Group.findOne({ _id: newGroupId, teacher: teacherId });
+    if (!newGroup) {
+      return res.status(404).json({
+        success: false,
+        message: "Target group not found or does not belong to you",
+      });
+    }
+
+    // Check if new group has capacity
+    if (newGroup.filled >= newGroup.capacity) {
+      return res.status(400).json({
+        success: false,
+        message: `Group "${newGroup.groupName}" is at full capacity (${newGroup.capacity}/${newGroup.capacity})`,
+      });
+    }
+
+    // Check if instrument matches
+    const normalizedNewInstrument = normalizeInstrument(newGroup.instrument);
+    const normalizedSubInstrument = normalizeInstrument(subscription.instrument);
+    
+    if (normalizedNewInstrument !== normalizedSubInstrument) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot reassign student to group with different instrument. Student: ${subscription.instrument}, Group: ${newGroup.instrument}`,
+      });
+    }
+
+    const oldGroupId = subscription.group;
+
+    // Update the subscription
+    subscription.group = newGroup._id;
+    subscription.groupName = newGroup.groupName;
+    await subscription.save();
+
+    // Update group fill counts
+    await refreshGroupFill(newGroup._id);
+    if (oldGroupId) {
+      await refreshGroupFill(oldGroupId);
+    }
+
+    return res.json({
+      success: true,
+      message: `Student "${subscription.user?.name || "Student"}" reassigned to group "${newGroup.groupName}" successfully`,
+      subscription,
+      newGroup,
+    });
+  } catch (error) {
+    console.error("reassignStudentToGroup error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};

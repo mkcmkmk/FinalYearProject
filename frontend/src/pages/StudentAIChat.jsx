@@ -107,6 +107,12 @@ const StudentAIChat = ({ user }) => {
             <textarea
               value={input}
               onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+                  event.preventDefault();
+                  sendMessage(event);
+                }
+              }}
               placeholder="Ask about practice, theory, instrument basics, or your classes..."
               rows="3"
             />

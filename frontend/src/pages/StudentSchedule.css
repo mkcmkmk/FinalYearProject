@@ -1,0 +1,290 @@
+.student-schedule-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(129, 140, 248, 0.14), transparent 26%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+.student-schedule-shell {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 28px 18px 40px;
+  display: grid;
+  gap: 18px;
+}
+
+.student-schedule-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  border-radius: 24px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(14px);
+}
+
+.student-schedule-card--hero,
+.student-schedule-tableHead,
+.student-schedule-summary,
+.student-schedule-emptyActions {
+  display: flex;
+  gap: 16px;
+}
+
+.student-schedule-card--hero,
+.student-schedule-tableCard {
+  padding: 24px;
+}
+
+.student-schedule-card--hero {
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.student-schedule-kicker {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.72rem;
+  color: #6366f1;
+}
+
+.student-schedule-card--hero h1,
+.student-schedule-tableHead h2 {
+  margin: 0;
+  color: #0f172a;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.student-schedule-card--hero h1 {
+  font-size: 2.2rem;
+}
+
+.student-schedule-copy,
+.student-schedule-tableHead p,
+.student-schedule-empty p,
+.student-schedule-summaryCard span,
+.student-schedule-alert {
+  color: #475569;
+}
+
+.student-schedule-copy {
+  max-width: 720px;
+  margin: 10px 0 0;
+}
+
+.student-schedule-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.student-schedule-btn {
+  padding: 13px 18px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+  background: linear-gradient(135deg, #111827, #312e81);
+  color: #fff;
+}
+
+.student-schedule-btn--ghost {
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.student-schedule-alert {
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+}
+
+.student-schedule-alert--error {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: rgba(239, 68, 68, 0.14);
+}
+
+.student-schedule-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.student-schedule-summaryCard {
+  padding: 18px;
+}
+
+.student-schedule-summaryCard span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.86rem;
+}
+
+.student-schedule-summaryCard strong {
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.student-schedule-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  text-transform: capitalize;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.student-schedule-pill--active {
+  background: #f0fdf4;
+  color: #166534;
+  border-color: rgba(34, 197, 94, 0.18);
+}
+
+.student-schedule-pill--pending {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: rgba(245, 158, 11, 0.18);
+}
+
+.student-schedule-pill--expired {
+  background: #fff1f2;
+  color: #9f1239;
+  border-color: rgba(239, 68, 68, 0.14);
+}
+
+.student-schedule-pill--none {
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.student-schedule-tableHead {
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.student-schedule-tableWrap {
+  overflow-x: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.student-schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+  background: #fff;
+}
+
+.student-schedule-table th,
+.student-schedule-table td {
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.student-schedule-table th {
+  background: rgba(238, 242, 255, 0.78);
+  color: #334155;
+  font-size: 0.83rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.student-schedule-table tbody tr:hover {
+  background: rgba(248, 250, 255, 0.82);
+}
+
+.student-schedule-empty {
+  padding: 26px 18px;
+  text-align: center;
+  border-radius: 18px;
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  background: rgba(248, 250, 255, 0.78);
+}
+
+.student-schedule-empty p {
+  margin: 0;
+}
+
+.student-schedule-empty p + p {
+  margin-top: 8px;
+}
+
+.student-schedule-emptyActions {
+  margin-top: 18px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.student-schedule-card,
+.student-schedule-btn,
+.student-schedule-summaryCard,
+.student-schedule-table tbody tr {
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease),
+    box-shadow var(--motion-duration-fast) var(--motion-ease),
+    border-color var(--motion-duration-fast) var(--motion-ease),
+    background-color var(--motion-duration-fast) var(--motion-ease);
+}
+
+.student-schedule-card:hover,
+.student-schedule-summaryCard:hover {
+  transform: translateY(-2px);
+}
+
+.student-schedule-btn:hover {
+  transform: translateY(-1px);
+}
+
+.student-schedule-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+
+@media (max-width: 1080px) {
+  .student-schedule-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .student-schedule-card--hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .student-schedule-actions {
+    justify-content: flex-start;
+  }
+
+  .student-schedule-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .student-schedule-shell {
+    padding: 18px 14px 30px;
+  }
+
+  .student-schedule-card--hero,
+  .student-schedule-tableCard,
+  .student-schedule-summaryCard {
+    padding: 18px;
+  }
+
+  .student-schedule-card--hero h1 {
+    font-size: 1.8rem;
+  }
+
+  .student-schedule-summary {
+    grid-template-columns: 1fr;
+  }
+}

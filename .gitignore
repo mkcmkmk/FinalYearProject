@@ -1,0 +1,16 @@
+node_modules/
+frontend/node_modules/
+server/node_modules/
+
+.env
+server/.env
+frontend/.env
+
+*.log
+debug.log
+
+dist/
+build/
+coverage/
+.vscode/
+.md

@@ -1,0 +1,156 @@
+.teacher-join-card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-soft);
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: left;
+  transition: all var(--motion-duration-base) var(--motion-ease);
+}
+
+.teacher-join-card:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border);
+}
+
+.teacher-join-header {
+  margin-bottom: 28px;
+}
+
+.teacher-join-header h3 {
+  margin: 0 0 10px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-strong);
+  letter-spacing: -0.5px;
+}
+
+.teacher-join-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.teacher-join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong);
+  letter-spacing: 0.01em;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group input[type="tel"],
+.form-group input[type="number"],
+.form-group textarea {
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all var(--motion-duration-fast) var(--motion-ease);
+  font-family: inherit;
+  background-color: var(--surface-soft);
+  color: var(--text-strong);
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  background-color: var(--surface);
+  box-shadow: 0 0 0 3px rgba(49, 46, 129, 0.1);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: var(--text-subtle);
+}
+
+.expertise-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.expertise-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-base);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all var(--motion-duration-fast) var(--motion-ease);
+}
+
+.expertise-checkbox:hover {
+  background-color: var(--surface-soft);
+  color: var(--brand);
+}
+
+.expertise-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: var(--brand);
+  width: 18px;
+  height: 18px;
+}
+
+.teacher-success-msg {
+  padding: 14px 14px;
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: fade-up var(--motion-duration-fast) var(--motion-ease);
+}
+
+.teacher-success-msg::before {
+  content: "✓";
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.teacher-error-msg {
+  padding: 14px 14px;
+  background: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: fade-up var(--motion-duration-fast) var(--motion-ease);
+}
+
+.teacher-error-msg::before {
+  content: "⚠";
+  font-size: 16px;
+}

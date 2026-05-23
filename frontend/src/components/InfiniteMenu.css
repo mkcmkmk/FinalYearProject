@@ -1,0 +1,116 @@
+/* Note: this CSS is only an example, you can overlay whatever you want using the activeItem logic */
+
+#infinite-grid-menu-canvas {
+  cursor: grab;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  outline: none;
+}
+
+#infinite-grid-menu-canvas:active {
+  cursor: grabbing;
+}
+
+.action-button {
+  position: absolute;
+  left: 50%;
+  z-index: 10;
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  background: #1e1e1e;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 4px solid #fff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.action-button-icon {
+  user-select: none;
+  position: relative;
+  color: #fff;
+  top: 1px;
+  font-size: 24px;
+}
+
+.face-title {
+  user-select: none;
+  position: absolute;
+  font-weight: 900;
+  font-size: 2.2rem;
+  color: #111827;
+  left: 50px;
+  top: 50%;
+}
+
+.face-title {
+  position: absolute;
+  top: 50%;
+  transform: translate(20%, -50%);
+}
+
+.face-title.active {
+  opacity: 1;
+  transform: translate(20%, -50%);
+  pointer-events: auto;
+  transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.face-title.inactive {
+  pointer-events: none;
+  opacity: 0;
+  transition: 0.15s ease;
+}
+
+.face-description {
+  user-select: none;
+  position: absolute;
+  max-width: 15ch;
+  top: 50%;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4b5563;
+  right: 50px;
+  transform: translate(0, -50%);
+}
+
+.face-description.active {
+  opacity: 1;
+  transform: translate(-30%, -50%);
+  pointer-events: auto;
+  transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.face-description.inactive {
+  pointer-events: none;
+  transform: translate(0%, -50%);
+  opacity: 0;
+  transition: 0.15s ease;
+}
+
+.action-button.active {
+  bottom: 2em;
+  transform: translateX(-50%) scale(1);
+  opacity: 1;
+  pointer-events: auto;
+  transition: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.action-button.inactive {
+  bottom: -80px;
+  transform: translateX(-50%) scale(0);
+  opacity: 0;
+  pointer-events: none;
+  transition: 0.15s ease;
+}
+
+@media (max-width: 1500px) {
+  .face-title,
+  .face-description {
+    display: none;
+  }
+}

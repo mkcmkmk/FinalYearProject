@@ -12,27 +12,80 @@ const SignUp = () => {
     name: "",
     email: "",
     password: "",
-    role: "student",
     contactNumber: "",
     profileImage: "",
-    instrumentExpertise: "",
-    yearsOfExperience: "",
-    teacherBio: "",
   });
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [passwordChecks, setPasswordChecks] = useState({
+    hasUpperCase: false,
+    hasNumber: false,
+    hasSpecialChar: false,
+    hasMinLength: false,
+  });
+
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password) => {
+    const checks = {
+      hasUpperCase: /[A-Z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+      hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+      hasMinLength: password.length > 8,
+    };
+    setPasswordChecks(checks);
+    return Object.values(checks).every(Boolean);
+  };
 
   const onChange = (e) => {
     setError(null);
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "email") {
+      if (!value) {
+        setEmailError("");
+      } else if (!validateEmail(value)) {
+        setEmailError("Invalid email format");
+      } else {
+        setEmailError("");
+      }
+    }
+
+    if (name === "password") {
+      if (value) {
+        validatePassword(value);
+      } else {
+        setPasswordChecks({
+          hasUpperCase: false,
+          hasNumber: false,
+          hasSpecialChar: false,
+          hasMinLength: false,
+        });
+      }
+    }
   };
 
-  const isTeacher = form.role === "teacher";
 
   const handleSignUp = async (e) => {
     e.preventDefault();
     setError(null);
+
+    if (!validateEmail(form.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (!validatePassword(form.password)) {
+      setError("Password does not meet all requirements");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -40,18 +93,12 @@ const SignUp = () => {
         name: form.name,
         email: form.email,
         password: form.password,
-        role: form.role,
+        role: "student",
         contactNumber: form.contactNumber ? Number(form.contactNumber) : null,
         profileImage: form.profileImage || "",
-        instrumentExpertise: isTeacher ? form.instrumentExpertise : "",
-        yearsOfExperience: isTeacher && form.yearsOfExperience !== "" ? Number(form.yearsOfExperience) : null,
-        teacherBio: isTeacher ? form.teacherBio : "",
       };
 
-      const res = await axios.post(
-        "http://localhost:3000/api/auth/register",
-        payload
-      );
+      const res = await axios.post("http://localhost:3000/api/auth/register", payload);
 
       if (res.data.success) {
         login(res.data.user);
@@ -105,6 +152,7 @@ const SignUp = () => {
               onChange={onChange}
               required
             />
+            {emailError && <p style={{ color: "red", fontSize: "12px", marginTop: "4px" }}>{emailError}</p>}
           </div>
 
           <div className="field">
@@ -112,73 +160,30 @@ const SignUp = () => {
             <input
               name="password"
               type="password"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               value={form.password}
               onChange={onChange}
               required
             />
+            {form.password && (
+              <div style={{ marginTop: "8px", fontSize: "12px" }}>
+                <div style={{ color: passwordChecks.hasMinLength ? "green" : "red" }}>
+                  ✓ More than 8 characters ({form.password.length})
+                </div>
+                <div style={{ color: passwordChecks.hasUpperCase ? "green" : "red" }}>
+                  ✓ At least one capital letter
+                </div>
+                <div style={{ color: passwordChecks.hasNumber ? "green" : "red" }}>
+                  ✓ At least one number
+                </div>
+                <div style={{ color: passwordChecks.hasSpecialChar ? "green" : "red" }}>
+                  ✓ At least one special character (!@#$%^&*...)
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="field">
-            <label>Role</label>
-            <select
-              name="role"
-              value={form.role}
-              onChange={onChange}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: "10px",
-                border: "1px solid #ddd",
-                fontSize: "14px",
-                background: "white",
-              }}
-            >
-              <option value="student">Student</option>
-              <option value="teacher">Teacher</option>
-            </select>
-          </div>
 
-          {isTeacher && (
-            <>
-              <div className="field">
-                <label>Instrument Expertise</label>
-                <input
-                  name="instrumentExpertise"
-                  type="text"
-                  placeholder="Piano, Guitar, Vocal..."
-                  value={form.instrumentExpertise}
-                  onChange={onChange}
-                  required
-                />
-              </div>
-
-              <div className="field">
-                <label>Years of Experience</label>
-                <input
-                  name="yearsOfExperience"
-                  type="number"
-                  min="0"
-                  placeholder="5"
-                  value={form.yearsOfExperience}
-                  onChange={onChange}
-                  required
-                />
-              </div>
-
-              <div className="field">
-                <label>Teacher Bio</label>
-                <input
-                  name="teacherBio"
-                  type="text"
-                  placeholder="Tell students about your teaching background"
-                  value={form.teacherBio}
-                  onChange={onChange}
-                  required
-                />
-              </div>
-            </>
-          )}
 
           <div className="field">
             <label>Contact Number (optional)</label>
@@ -202,19 +207,17 @@ const SignUp = () => {
             />
           </div>
 
-          <button type="submit" className="login-btn" disabled={loading}>
+          <button 
+            type="submit" 
+            className="login-btn" 
+            disabled={loading || emailError || !form.email || !form.password || !Object.values(passwordChecks).every(Boolean)}
+          >
             {loading ? "Creating..." : "Create Account"}
           </button>
         </form>
 
         <p className="footer-text" style={{ marginTop: 14 }}>
-          Already have an account?{" "}
-          <span
-            style={{ color: "black", cursor: "pointer", fontWeight: 600 }}
-            onClick={() => navigate("/login")}
-          >
-            Login
-          </span>
+          Already have an account? <span className="auth-link" onClick={() => navigate("/login")}>Login</span>
         </p>
       </div>
     </div>

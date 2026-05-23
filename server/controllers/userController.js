@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import AdminNotice from "../models/AdminNotice.js";
 import ClassSchedule from "../models/ClassSchedule.js";
 import Group from "../models/Group.js";
 import Subscription from "../models/Subscription.js";
@@ -6,6 +7,31 @@ import TeacherRating from "../models/TeacherRating.js";
 import User from "../models/User.js";
 
 const APP_TIME_ZONE = "Asia/Katmandu";
+
+const normalizeRole = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase();
+
+const normalizeNoticeAudience = (value) => {
+  const next = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  if (["all", "everyone", "users"].includes(next)) {
+    return "all";
+  }
+
+  if (["student", "students", "student-only", "student_only"].includes(next)) {
+    return "student";
+  }
+
+  if (["teacher", "teachers", "teacher-only", "teacher_only"].includes(next)) {
+    return "teacher";
+  }
+
+  return null;
+};
 
 const normalizeInstrument = (value) =>
   String(value || "")
@@ -386,6 +412,45 @@ export const getTeacherProfileById = async (req, res) => {
     }
 
     return res.json({ success: true, ...profile });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+export const getAdminNotices = async (req, res) => {
+  try {
+    const viewerRole = normalizeRole(req.user?.role);
+    const audience = viewerRole === "teacher" ? "teacher" : viewerRole === "student" ? "student" : null;
+
+    if (!audience) {
+      return res.json({ success: true, notices: [] });
+    }
+
+    const notices = await AdminNotice.find({ isActive: true })
+      .sort({ isPinned: -1, createdAt: -1 })
+      .limit(10)
+      .populate("author", "name role")
+      .lean();
+
+    const filteredNotices = notices.filter((notice) => {
+      const noticeAudience = normalizeNoticeAudience(notice.audience);
+      return noticeAudience === "all" || noticeAudience === audience;
+    });
+
+    return res.json({
+      success: true,
+      notices: filteredNotices.map((notice) => ({
+        id: notice._id,
+        title: notice.title,
+        message: notice.message,
+        audience: normalizeNoticeAudience(notice.audience) || "all",
+        isPinned: Boolean(notice.isPinned),
+        createdAt: notice.createdAt,
+        authorName: notice.author?.name || "Admin",
+      })),
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
