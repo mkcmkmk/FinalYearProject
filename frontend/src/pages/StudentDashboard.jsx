@@ -2,21 +2,40 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import axios from "axios";
 import "./StudentDashboard.css";
 import { useAuth } from "../context/authContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import StudentLayout from "../components/StudentLayout";
 import StudentAIChat from "./StudentAIChat";
 import { COURSE_CATALOG } from "../data/courseCatalog";
 import InfiniteMenu from "../components/InfiniteMenu";
 
+const TASKS_API = "http://localhost:3000/api/tasks";
+
+const formatTaskDate = (dueDate) => {
+  if (!dueDate) return "No due date";
+  return `Due ${new Date(dueDate).toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  })}`;
+};
+
+const mapTaskStatus = (status) => (status === "archived" ? "Done" : "To do");
+
 const StudentDashboard = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState(null);
   const [taskFilter, setTaskFilter] = useState("All task");
 
+  const [tasks, setTasks] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
   const [loadingTeachers, setLoadingTeachers] = useState(true);
   const [loadingSchedule, setLoadingSchedule] = useState(true);
+  const [tasksError, setTasksError] = useState("");
   const [sub, setSub] = useState(null);
   const scrollRef = useRef(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -46,6 +65,33 @@ const StudentDashboard = () => {
     localStorage.setItem("student_notes", JSON.stringify(notes));
   }, [notes]);
 
+  useEffect(() => {
+    if (!location.state?.paymentSuccess) return;
+
+    setShowPaymentSuccess(true);
+    setPaymentDetails(location.state?.payment || null);
+    window.history.replaceState({}, document.title);
+
+    refreshUser();
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const refreshSubscription = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api/subscriptions/me/schedule", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSub(response.data?.subscription || null);
+        setSchedules(Array.isArray(response.data?.schedules) ? response.data.schedules : []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    refreshSubscription();
+  }, [location.state]);
+
   const handleOpenCreate = () => {
     setEditingNote(null);
     setNoteTitle("");
@@ -64,14 +110,37 @@ const StudentDashboard = () => {
 
   const taskFilters = ["All task", "To do", "In progress", "Done"];
 
-  const tasks = [
-    { title: "Read poem & answer questions", subject: "English Literature", date: "Apr 28, 2025", comments: 12, status: "In progress", progress: 60 },
-    { title: "Create a comic strip with a story", subject: "Social Studies", date: "May 17, 2025", comments: 0, status: "To do", progress: 0 },
-    { title: "Prepare for the math test", subject: "Math", date: "May 11, 2025", comments: 2, status: "To do", progress: 0 },
-    { title: "Read the chapter about plant and animal", subject: "Biology", date: "Apr 22, 2025", comments: 3, status: "To do", progress: 0 },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    const loadTasks = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setLoadingTasks(false);
+        return;
+      }
 
+      try {
+        setTasksError("");
+        const response = await axios.get(`${TASKS_API}/student`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
+        if (!mounted) return;
+        setTasks(Array.isArray(response.data?.tasks) ? response.data.tasks : []);
+      } catch (err) {
+        console.error("Error fetching student tasks:", err?.response?.data || err.message);
+        if (mounted) {
+          setTasks([]);
+          setTasksError(err?.response?.data?.message || "Unable to load tasks right now.");
+        }
+      } finally {
+        if (mounted) setLoadingTasks(false);
+      }
+    };
+
+    loadTasks();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -132,6 +201,24 @@ const StudentDashboard = () => {
     fetchTeachers();
     return () => { mounted = false; };
   }, []);
+
+  const mappedTasks = useMemo(() => {
+    return tasks.map((task) => ({
+      id: task._id,
+      title: task.title,
+      description: task.description,
+      status: mapTaskStatus(task.status),
+      groupName: task.groupId?.groupName || "My Group",
+      instrument: task.groupId?.instrument || "Group task",
+      date: formatTaskDate(task.dueDate),
+    }));
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    return mappedTasks.filter(
+      (task) => taskFilter === "All task" || task.status === taskFilter
+    );
+  }, [mappedTasks, taskFilter]);
 
   const menuItems = useMemo(() => {
     return teachers && teachers.length > 0 
@@ -210,28 +297,45 @@ const StudentDashboard = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-6 pr-2 custom-scrollbar">
-            {tasks.filter(t => taskFilter === "All task" || t.status === taskFilter).map((task, idx) => (
-              <div key={idx} className="flex flex-col gap-1 pb-6 border-b border-gray-100 last:border-0">
-                <div className="flex justify-between items-start gap-4">
-                  <h3 className="font-bold text-[17px] leading-snug">{task.title}</h3>
-                  <span className={`px-3 py-1 rounded-full text-[12px] font-bold whitespace-nowrap ${
-                    task.status === "In progress" ? "bg-[#ffe2c2] text-[#d97c23]" : "bg-[#ded6ff] text-[#7a5cff]"
-                  }`}>
-                    {task.status}
-                  </span>
-                </div>
-                <span className="text-[13px] text-gray-400 font-medium mb-1 mt-1">{task.subject}</span>
-                <div className="flex justify-between items-center text-[13px] text-gray-400 font-medium">
-                  <span>{task.date}</span>
-                  <span>{task.comments > 0 ? `${task.comments} comments` : "No comments"}</span>
-                </div>
-                {task.status === "In progress" && (
-                  <div className="w-full h-[6px] bg-gray-100 rounded-full mt-3 overflow-hidden">
-                     <div className="h-full bg-green-400 rounded-full" style={{ width: `${task.progress}%` }}></div>
-                  </div>
-                )}
+            {loadingTasks ? (
+              <div className="text-center py-10 text-gray-400 font-semibold text-sm">Loading tasks...</div>
+            ) : tasksError ? (
+              <div className="text-center py-10 px-4 text-red-500 font-semibold text-sm bg-red-50 rounded-[1.5rem]">
+                {tasksError}
               </div>
-            ))}
+            ) : filteredTasks.length === 0 ? (
+              <div className="text-center p-6 flex flex-col justify-center items-center h-full gap-2 text-gray-400 font-bold text-sm bg-[#f8f9fb] rounded-[1.5rem] border border-gray-50">
+                <span>No tasks found.</span>
+                <span className="text-xs font-medium text-gray-400">
+                  Your group tasks will appear here once your teacher assigns them.
+                </span>
+              </div>
+            ) : (
+              filteredTasks.map((task) => (
+                <div key={task.id} className="flex flex-col gap-2 pb-6 border-b border-gray-100 last:border-0">
+                  <div className="flex justify-between items-start gap-4">
+                    <h3 className="font-bold text-[17px] leading-snug">{task.title}</h3>
+                    <span className={`px-3 py-1 rounded-full text-[12px] font-bold whitespace-nowrap ${
+                      task.status === "Done"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-[#ded6ff] text-[#7a5cff]"
+                    }`}>
+                      {task.status}
+                    </span>
+                  </div>
+                  <span className="text-[13px] text-gray-400 font-medium">
+                    {task.groupName} • {task.instrument}
+                  </span>
+                  <p className="text-[14px] text-gray-600 leading-relaxed line-clamp-2">
+                    {task.description}
+                  </p>
+                  <div className="flex justify-between items-center text-[13px] text-gray-400 font-medium">
+                    <span>{task.date}</span>
+                    <span>{task.instrument}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <button className="w-full mt-4 py-3.5 border-2 border-gray-100 rounded-[1.25rem] font-bold text-[15px] text-gray-600 hover:bg-gray-50 transition-colors">
@@ -420,6 +524,34 @@ const StudentDashboard = () => {
 
       </div>
       <StudentAIChat user={user} />
+
+      {showPaymentSuccess && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-xl">
+            <div className="w-16 h-16 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold">
+              ✓
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Subscription active</h2>
+            <p className="text-gray-500 mb-2 font-medium">
+              Your subscription is now active. Thank you.
+            </p>
+            {paymentDetails?.subscription?.plan && (
+              <p className="text-sm text-gray-400 mb-6">
+                {paymentDetails.subscription.plan} · {paymentDetails.subscription.instrument}
+                {paymentDetails.amount != null ? ` · Rs ${paymentDetails.amount}` : ""}
+              </p>
+            )}
+            {!paymentDetails?.subscription?.plan && <div className="mb-6" />}
+            <button
+              type="button"
+              onClick={() => setShowPaymentSuccess(false)}
+              className="w-full py-3.5 bg-[#1e1e1e] text-white rounded-[1.25rem] font-bold hover:bg-black transition-colors cursor-pointer border-none"
+            >
+              Continue
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Popout Immersive Preview Modal */}
       {selectedCourse && (

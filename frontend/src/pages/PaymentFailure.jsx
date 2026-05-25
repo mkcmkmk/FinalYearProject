@@ -1,18 +1,11 @@
-import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import "./PaymentResult.css";
-
-/**
- * Payment Failure Page Component
- * User is redirected here by eSewa if payment fails or is cancelled
- */
 
 const PaymentFailure = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [showDetails, setShowDetails] = useState(false);
 
-  const transaction_uuid = searchParams.get("transaction_uuid");
+  const pidx = searchParams.get("pidx");
   const error = searchParams.get("error");
 
   return (
@@ -26,7 +19,7 @@ const PaymentFailure = () => {
           </div>
 
           <h1>Payment Failed</h1>
-          <p className="subtitle">We could not process your payment</p>
+          <p className="subtitle">We could not complete your subscription payment</p>
 
           {error && (
             <div className="error-box">
@@ -35,68 +28,30 @@ const PaymentFailure = () => {
             </div>
           )}
 
-          {transaction_uuid && (
+          {pidx && (
             <div className="transaction-info">
-              <small>Transaction ID: {transaction_uuid}</small>
+              <small>Payment reference: {pidx}</small>
             </div>
           )}
 
           <div className="action-buttons">
-            <button
-              onClick={() => navigate("/pay")}
-              className="btn btn-primary"
-            >
+            <button type="button" onClick={() => navigate("/pay")} className="btn btn-primary">
               Try Again
             </button>
             <button
-              onClick={() => navigate("/dashboard")}
+              type="button"
+              onClick={() => navigate("/student-dashboard")}
               className="btn btn-secondary"
             >
               Back to Dashboard
             </button>
           </div>
 
-          <details className="troubleshooting">
-            <summary onClick={() => setShowDetails(!showDetails)}>
-              Why did my payment fail?
-            </summary>
-            {showDetails && (
-              <div className="troubleshooting-content">
-                <ul>
-                  <li>
-                    <strong>Insufficient Balance:</strong> Your eSewa account may not have
-                    sufficient balance. Please check your wallet.
-                  </li>
-                  <li>
-                    <strong>Connection Error:</strong> A network issue may have occurred.
-                    Try again with a stable connection.
-                  </li>
-                  <li>
-                    <strong>Incorrect Details:</strong> Payment details may be incorrect.
-                    Verify your eSewa account information.
-                  </li>
-                  <li>
-                    <strong>Session Timeout:</strong> Your eSewa session may have expired.
-                    Try again.
-                  </li>
-                  <li>
-                    <strong>Device Issue:</strong> Clear your browser cache and try from
-                    a different device or browser.
-                  </li>
-                </ul>
-                <p>
-                  If the problem persists, contact our support team for assistance.
-                </p>
-              </div>
-            )}
-          </details>
-
           <div className="info-box warning">
             <p>
-              ⚠ No payment has been deducted from your account
+              No membership was activated.
               <br />
-              ⚠ Please try again or contact support if you need help
-              <br />⚠ Your transaction will remain pending until successful payment
+              You can retry payment from the Pay page.
             </p>
           </div>
         </div>

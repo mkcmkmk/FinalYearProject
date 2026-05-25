@@ -23,6 +23,26 @@ const AuthProvider = ({ children }) => {
     localStorage.setItem("user", JSON.stringify(normalized));
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    if (!token) return null;
+
+    try {
+      const res = await fetch(`${apiBase}/api/users/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data?.user) {
+        login(data.user);
+        return data.user;
+      }
+    } catch {
+      // Caller may fall back to cached user
+    }
+    return null;
+  }, [login]);
+
   const logout = useCallback(() => {
     if (window.google?.accounts?.id) {
       window.google.accounts.id.disableAutoSelect();
@@ -33,7 +53,10 @@ const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
   }, []);
 
-  const value = useMemo(() => ({ user, login, logout }), [user, login, logout]);
+  const value = useMemo(
+    () => ({ user, login, logout, refreshUser }),
+    [user, login, logout, refreshUser]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -1,5 +1,8 @@
+import mongoose from "mongoose";
+import ChatMessage from "../models/ChatMessage.js";
 import ClassSchedule from "../models/ClassSchedule.js";
 import Group from "../models/Group.js";
+import GroupTask from "../models/GroupTask.js";
 import Subscription from "../models/Subscription.js";
 
 const ensureTeacher = (req, res) => {
@@ -11,9 +14,61 @@ const ensureTeacher = (req, res) => {
   return true;
 };
 
+const ACTIVE_STATUSES = ["active", "pending"];
+
 const refreshGroupFill = async (groupId) => {
-  const filled = await Subscription.countDocuments({ group: groupId });
-  await Group.findByIdAndUpdate(groupId, { filled });
+  if (!groupId) return;
+
+  const distinctUsers = await Subscription.distinct("user", {
+    group: groupId,
+    status: { $in: ACTIVE_STATUSES },
+  });
+
+  await Group.findByIdAndUpdate(groupId, { filled: distinctUsers.length });
+};
+
+const pickCanonicalSubscriptionPerUser = (subscriptions) => {
+  const byUser = new Map();
+
+  for (const subscription of subscriptions) {
+    const userId = String(subscription.user?._id || subscription.user || "");
+    if (!userId) continue;
+
+    const existing = byUser.get(userId);
+    if (!existing || new Date(subscription.updatedAt) > new Date(existing.updatedAt)) {
+      byUser.set(userId, subscription);
+    }
+  }
+
+  return byUser;
+};
+
+const syncUserGroupPlacements = async ({
+  userIds,
+  teacherId,
+  instrument,
+  groupId,
+  groupName,
+}) => {
+  const uniqueUserIds = [...new Set(userIds.map((id) => String(id)).filter(Boolean))];
+  if (!uniqueUserIds.length) return;
+
+  const normalizedInstrument = String(instrument).trim();
+
+  await Subscription.updateMany(
+    {
+      user: { $in: uniqueUserIds },
+      instrument: normalizedInstrument,
+      status: { $in: ACTIVE_STATUSES },
+      $or: [{ teacher: teacherId }, { teacher: null }, { teacher: { $exists: false } }],
+    },
+    {
+      teacher: teacherId,
+      group: groupId,
+      groupName,
+      instrument: normalizedInstrument,
+    }
+  );
 };
 
 const dayOrder = {
@@ -71,7 +126,7 @@ export const getTeacherDashboard = async (req, res) => {
         ClassSchedule.find({ teacher: teacherId }).lean(),
       ]);
 
-    const groups = allGroups.filter((group) => hasMatchingExpertise(req.user, group.instrument));
+    let groups = allGroups.filter((group) => hasMatchingExpertise(req.user, group.instrument));
     const teacherSubscriptions = allTeacherSubscriptions.filter((subscription) =>
       hasMatchingExpertise(req.user, subscription.instrument)
     );
@@ -82,22 +137,63 @@ export const getTeacherDashboard = async (req, res) => {
       hasMatchingExpertise(req.user, schedule.instrument)
     );
 
+    const canonicalAssignedByUser = pickCanonicalSubscriptionPerUser(teacherSubscriptions);
+    const canonicalUnassignedByUser = pickCanonicalSubscriptionPerUser(unassignedSubscriptions);
+
+    const userGroupIds = new Map();
+    let hasSplitPlacements = false;
+
+    for (const subscription of teacherSubscriptions) {
+      const userId = String(subscription.user?._id || subscription.user || "");
+      const groupId = String(subscription.group?._id || subscription.group || "");
+      if (!userId || !groupId) continue;
+
+      if (userGroupIds.has(userId) && userGroupIds.get(userId) !== groupId) {
+        hasSplitPlacements = true;
+        break;
+      }
+
+      userGroupIds.set(userId, groupId);
+    }
+
+    if (hasSplitPlacements) {
+      await Promise.all(
+        [...canonicalAssignedByUser.values()].map((subscription) => {
+          const groupId = subscription.group?._id || subscription.group;
+          if (!groupId) return Promise.resolve();
+
+          return syncUserGroupPlacements({
+            userIds: [subscription.user?._id || subscription.user],
+            teacherId,
+            instrument: subscription.instrument,
+            groupId,
+            groupName: subscription.groupName || subscription.group?.groupName || "",
+          });
+        })
+      );
+
+      await Promise.all(groups.map((group) => refreshGroupFill(group._id)));
+
+      const refreshedGroups = await Group.find({ teacher: teacherId }).sort({ groupName: 1 }).lean();
+      groups = refreshedGroups.filter((group) => hasMatchingExpertise(req.user, group.instrument));
+    }
+
     const groupedStudents = groups.map((group) => ({
       ...group,
-      students: teacherSubscriptions.filter(
+      students: [...canonicalAssignedByUser.values()].filter(
         (subscription) =>
           String(subscription.group?._id || subscription.group || "") === String(group._id)
       ),
     }));
 
     const studentPool = [
-      ...teacherSubscriptions.map((subscription) => ({
+      ...[...canonicalAssignedByUser.values()].map((subscription) => ({
         ...subscription,
         assignmentState: "assigned",
         currentGroupName:
           subscription.groupName || subscription.group?.groupName || "Unassigned",
       })),
-      ...unassignedSubscriptions.map((subscription) => ({
+      ...[...canonicalUnassignedByUser.values()].map((subscription) => ({
         ...subscription,
         assignmentState: "unassigned",
         currentGroupName: "Unassigned",
@@ -121,8 +217,8 @@ export const getTeacherDashboard = async (req, res) => {
       },
       summary: {
         totalGroups: groups.length,
-        totalStudents: teacherSubscriptions.length,
-        unassignedStudents: unassignedSubscriptions.length,
+        totalStudents: canonicalAssignedByUser.size,
+        unassignedStudents: canonicalUnassignedByUser.size,
         totalSchedules: sortedSchedules.length,
       },
       expertiseInstruments: teacherExpertiseList,
@@ -190,7 +286,7 @@ export const assignStudentsToGroup = async (req, res) => {
       _id: { $in: subscriptionIds },
       status: { $in: ["active", "pending"] },
       $or: [{ teacher: req.user._id }, { teacher: null }, { teacher: { $exists: false } }],
-    }).select("_id group instrument");
+    }).select("_id user group instrument");
 
     const expertiseMatchedSubscriptions = allowedSubscriptions.filter((subscription) =>
       hasMatchingExpertise(req.user, subscription.instrument)
@@ -203,22 +299,42 @@ export const assignStudentsToGroup = async (req, res) => {
       });
     }
 
-    const allowedIds = expertiseMatchedSubscriptions.map((subscription) => subscription._id);
+    const userIds = expertiseMatchedSubscriptions.map((subscription) => subscription.user);
+    const groupCapacity = group.capacity || 8;
+    const usersAlreadyInGroup = await Subscription.distinct("user", {
+      group: group._id,
+      status: { $in: ACTIVE_STATUSES },
+    });
+    const usersAlreadySet = new Set(usersAlreadyInGroup.map(String));
+    const newUserIds = userIds.filter((id) => !usersAlreadySet.has(String(id)));
 
-    await Subscription.updateMany(
-      { _id: { $in: allowedIds } },
-      {
-        teacher: req.user._id,
-        group: group._id,
-        groupName: group.groupName,
-        instrument: normalizedInstrument,
-      }
-    );
+    if (usersAlreadyInGroup.length + newUserIds.length > groupCapacity) {
+      const slotsLeft = Math.max(0, groupCapacity - usersAlreadyInGroup.length);
+      return res.status(400).json({
+        success: false,
+        message: `Group "${normalizedGroupName}" is at full capacity (${usersAlreadyInGroup.length}/${groupCapacity}). Only ${slotsLeft} slot(s) remaining.`,
+      });
+    }
 
-    const previousGroupIds = expertiseMatchedSubscriptions
+    const subscriptionsBeforeAssign = await Subscription.find({
+      user: { $in: userIds },
+      instrument: normalizedInstrument,
+      status: { $in: ACTIVE_STATUSES },
+      $or: [{ teacher: req.user._id }, { teacher: null }, { teacher: { $exists: false } }],
+    }).select("group");
+
+    const previousGroupIds = subscriptionsBeforeAssign
       .map((subscription) => subscription.group)
       .filter(Boolean)
       .map((id) => String(id));
+
+    await syncUserGroupPlacements({
+      userIds,
+      teacherId: req.user._id,
+      instrument: normalizedInstrument,
+      groupId: group._id,
+      groupName: group.groupName,
+    });
 
     await refreshGroupFill(group._id);
     await Promise.all(
@@ -325,12 +441,24 @@ export const reassignStudentToGroup = async (req, res) => {
       });
     }
 
-    // Check if new group has capacity
-    if (newGroup.filled >= newGroup.capacity) {
-      return res.status(400).json({
-        success: false,
-        message: `Group "${newGroup.groupName}" is at full capacity (${newGroup.capacity}/${newGroup.capacity})`,
+    const alreadyInTargetGroup = await Subscription.exists({
+      user: subscription.user,
+      group: newGroup._id,
+      status: { $in: ACTIVE_STATUSES },
+    });
+
+    if (!alreadyInTargetGroup) {
+      const usersInTargetGroup = await Subscription.distinct("user", {
+        group: newGroup._id,
+        status: { $in: ACTIVE_STATUSES },
       });
+
+      if (usersInTargetGroup.length >= newGroup.capacity) {
+        return res.status(400).json({
+          success: false,
+          message: `Group "${newGroup.groupName}" is at full capacity (${newGroup.capacity}/${newGroup.capacity})`,
+        });
+      }
     }
 
     // Check if instrument matches
@@ -344,18 +472,28 @@ export const reassignStudentToGroup = async (req, res) => {
       });
     }
 
-    const oldGroupId = subscription.group;
+    const previousGroupIds = await Subscription.distinct("group", {
+      user: subscription.user,
+      teacher: teacherId,
+      instrument: subscription.instrument,
+      status: { $in: ACTIVE_STATUSES },
+      group: { $ne: null },
+    });
 
-    // Update the subscription
-    subscription.group = newGroup._id;
-    subscription.groupName = newGroup.groupName;
-    await subscription.save();
+    await syncUserGroupPlacements({
+      userIds: [subscription.user],
+      teacherId,
+      instrument: subscription.instrument,
+      groupId: newGroup._id,
+      groupName: newGroup.groupName,
+    });
 
-    // Update group fill counts
-    await refreshGroupFill(newGroup._id);
-    if (oldGroupId) {
-      await refreshGroupFill(oldGroupId);
-    }
+    const groupsToRefresh = new Set([
+      String(newGroup._id),
+      ...previousGroupIds.map((id) => String(id)),
+    ]);
+
+    await Promise.all([...groupsToRefresh].map((groupId) => refreshGroupFill(groupId)));
 
     return res.json({
       success: true,
@@ -366,5 +504,72 @@ export const reassignStudentToGroup = async (req, res) => {
   } catch (error) {
     console.error("reassignStudentToGroup error:", error);
     return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const deleteGroup = async (req, res) => {
+  try {
+    if (!ensureTeacher(req, res)) return;
+
+    const groupId = String(req.body?.groupId || req.params?.groupId || "").trim();
+    const teacherId = req.user._id;
+
+    if (!groupId) {
+      return res.status(400).json({
+        success: false,
+        message: "Group ID is required",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(groupId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid group ID",
+      });
+    }
+
+    const group = await Group.findById(groupId);
+    if (!group) {
+      return res.json({
+        success: true,
+        message: "Group already deleted",
+      });
+    }
+
+    if (String(group.teacher) !== String(teacherId)) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own groups",
+      });
+    }
+
+    const unassignedCount = await Subscription.countDocuments({
+      group: group._id,
+      status: { $in: ACTIVE_STATUSES },
+    });
+
+    await Subscription.updateMany(
+      { group: group._id },
+      { $set: { group: null, groupName: "" } }
+    );
+    await ClassSchedule.deleteMany({ group: group._id });
+    await ChatMessage.deleteMany({ group: group._id });
+    await GroupTask.deleteMany({ groupId: group._id });
+    await Group.deleteOne({ _id: group._id });
+
+    return res.json({
+      success: true,
+      message:
+        unassignedCount > 0
+          ? `Group "${group.groupName}" deleted. ${unassignedCount} student(s) moved back to unassigned.`
+          : `Group "${group.groupName}" deleted successfully`,
+      deletedGroupId: groupId,
+    });
+  } catch (error) {
+    console.error("deleteGroup error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
   }
 };

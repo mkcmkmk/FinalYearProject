@@ -22,6 +22,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/subscriptions", subscriptionRoutes);
 app.use("/api/teacher", teacherRoutes);
+console.log("Teacher routes loaded (includes POST /api/teacher/groups/delete)");
 app.use("/api/admin", adminRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/ai", aiRoutes);

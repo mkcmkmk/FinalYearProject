@@ -197,9 +197,22 @@ const Pay = () => {
               <h1 className="text-2xl font-extrabold text-gray-900">Choose your program</h1>
               <p className="text-sm text-gray-500 mt-1">Select an instrument, level, and pick a preferred teacher.</p>
             </div>
-            <button className="px-5 py-3 border-2 border-gray-100 rounded-[1.25rem] font-bold text-sm text-gray-600 hover:bg-gray-50 transition-colors" type="button" onClick={() => navigate(state?.instrument ? -1 : "/student-dashboard")}>
-              Back
-            </button>
+            <div className="flex gap-2">
+              <button
+                className="px-5 py-3 border-2 border-gray-100 rounded-[1.25rem] font-bold text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                type="button"
+                onClick={() => navigate("/payment/history")}
+              >
+                History
+              </button>
+              <button
+                className="px-5 py-3 border-2 border-gray-100 rounded-[1.25rem] font-bold text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+                type="button"
+                onClick={() => navigate(state?.instrument ? -1 : "/student-dashboard")}
+              >
+                Back
+              </button>
+            </div>
           </div>
 
           {/* Tab Selector */}

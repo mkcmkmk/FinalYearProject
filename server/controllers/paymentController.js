@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Subscription from "../models/Subscription.js";
 import TeacherRating from "../models/TeacherRating.js";
 import User from "../models/User.js";
@@ -34,6 +35,91 @@ const getTeacherExpertiseList = (teacher) =>
 
 const matchesInstrumentExpertise = (teacher, instrument) =>
   getTeacherExpertiseList(teacher).includes(normalizeInstrument(instrument));
+
+const activateSubscription = async (sub, pidx, transactionId) => {
+  if (sub.status === "active") {
+    return { alreadyActive: true };
+  }
+
+  sub.status = "active";
+  sub.paidAt = new Date();
+  await sub.save();
+
+  await Payment.findOneAndUpdate(
+    { orderId: sub._id },
+    {
+      status: "PAID",
+      completed_at: new Date(),
+      transaction_uuid: transactionId || pidx,
+      ...(pidx ? { khaltiPidx: pidx } : {}),
+    }
+  );
+
+  await User.findByIdAndUpdate(sub.user, {
+    isMember: true,
+    UpdatedAt: new Date(),
+  });
+
+  return { alreadyActive: false };
+};
+
+const resolveSubscriptionForVerify = async (userId, { purchaseOrderId, pidx }) => {
+  const ownerMatch = (sub) => sub && String(sub.user) === String(userId);
+
+  if (purchaseOrderId && mongoose.Types.ObjectId.isValid(String(purchaseOrderId))) {
+    const byOrderId = await Subscription.findById(purchaseOrderId);
+    if (ownerMatch(byOrderId)) return byOrderId;
+  }
+
+  if (pidx) {
+    const payment = await Payment.findOne({
+      userId,
+      $or: [{ khaltiPidx: pidx }, { transaction_uuid: pidx }],
+    }).lean();
+
+    if (payment?.orderId) {
+      const byPayment = await Subscription.findById(payment.orderId);
+      if (ownerMatch(byPayment)) return byPayment;
+    }
+  }
+
+  const pending = await Subscription.findOne({ user: userId, status: "pending" }).sort({
+    createdAt: -1,
+  });
+  if (ownerMatch(pending)) return pending;
+
+  const active = await Subscription.findOne({ user: userId, status: "active" }).sort({
+    createdAt: -1,
+  });
+  if (ownerMatch(active)) return active;
+
+  return null;
+};
+
+const getExpectedAmountPaisa = (sub) => (sub.amount || priceMap[sub.plan] || 0) * 100;
+
+const validateKhaltiAmounts = (sub, { khaltiTotalAmount, callbackAmountPaisa }) => {
+  const expectedPaisa = getExpectedAmountPaisa(sub);
+  if (!expectedPaisa) return { ok: true, expectedPaisa };
+
+  if (khaltiTotalAmount != null && Number(khaltiTotalAmount) !== expectedPaisa) {
+    return {
+      ok: false,
+      expectedPaisa,
+      message: `Khalti amount (Rs ${Number(khaltiTotalAmount) / 100}) does not match subscription (Rs ${expectedPaisa / 100})`,
+    };
+  }
+
+  if (callbackAmountPaisa != null && Number(callbackAmountPaisa) !== expectedPaisa) {
+    return {
+      ok: false,
+      expectedPaisa,
+      message: `Callback amount (Rs ${Number(callbackAmountPaisa) / 100}) does not match subscription (Rs ${expectedPaisa / 100})`,
+    };
+  }
+
+  return { ok: true, expectedPaisa };
+};
 
 const isSubscriptionExpired = (subscription) => {
   if (!subscription?.expiresAt) {
@@ -118,10 +204,12 @@ export const createSubscription = async (req, res) => {
     let teacher = null;
     if (teacherId) {
       console.log("🔍 Looking for teacher:", teacherId);
-      teacher = await User.findOne({ _id: teacherId, role: "teacher" }).select("name instrumentExpertise").lean();
+      teacher = await User.findOne({ _id: teacherId, role: "teacher", isTeacher: true })
+        .select("name instrumentExpertise")
+        .lean();
       if (!teacher) {
         console.log("❌ Teacher not found");
-        return res.status(404).json({ success: false, message: "Selected teacher not found" });
+        return res.status(404).json({ success: false, message: "Selected teacher not found or not yet approved" });
       }
 
       if (!matchesInstrumentExpertise(teacher, instrument)) {
@@ -176,10 +264,12 @@ export const createSubscription = async (req, res) => {
     let paymentUrl = "";
     let pidx = "";
 
+    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:5173").replace(/\/$/, "");
+
     try {
       const khaltiPayload = {
-        return_url: "http://localhost:5173/khalti-callback",
-        website_url: "http://localhost:5173",
+        return_url: `${frontendUrl}/khalti-callback`,
+        website_url: frontendUrl,
         amount: priceMap[plan] * 100, // amount in paisa (Rs * 100)
         purchase_order_id: sub._id.toString(),
         purchase_order_name: `Subscription: ${plan}`,
@@ -210,11 +300,15 @@ export const createSubscription = async (req, res) => {
       pidx = khaltiData.pidx;
       DEBUG_LOG("✅ Dynamic Khalti Payment initiated successfully. pidx:", pidx);
 
+      if (pidx) {
+        await Payment.findOneAndUpdate({ orderId: sub._id }, { khaltiPidx: pidx });
+      }
+
     } catch (khaltiError) {
       DEBUG_LOG("⚠️ Khalti dynamic initiation failed, falling back to bypass / mock mode. Error:", khaltiError.message);
       // Fallback/bypass logic in case the API fails (e.g. offline development)
       pidx = `demo-pidx-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
-      paymentUrl = `http://localhost:5173/khalti-callback?pidx=${pidx}&status=Completed&purchase_order_id=${sub._id}`;
+      paymentUrl = `${frontendUrl}/khalti-callback?pidx=${pidx}&status=Completed&purchase_order_id=${sub._id}`;
     }
 
     const fullSubscription = await Subscription.findById(sub._id)
@@ -344,44 +438,44 @@ export const getStatements = async (req, res) => {
   }
 };
 
+const formatSubscriptionPayload = (sub) => ({
+  id: sub._id,
+  plan: sub.plan,
+  instrument: sub.instrument,
+  level: sub.level,
+  amount: sub.amount || priceMap[sub.plan],
+  status: sub.status,
+});
+
 export const verifyKhaltiPayment = async (req, res) => {
   try {
-    const { pidx } = req.body;
+    const { pidx, purchase_order_id: purchaseOrderId, amount: callbackAmountPaisa } = req.body;
     if (!pidx) return res.status(400).json({ success: false, message: "pidx is required" });
 
     // Handle test/demo pidx redirect integration
     if (pidx === "SUPC9fksU7yL63X8qoEYBj" || pidx.startsWith("demo-pidx-")) {
       DEBUG_LOG(`🔑 Verification bypass for test pidx: ${pidx}`);
-      const sub = await Subscription.findOne({ user: req.user._id, status: "pending" }).sort({ createdAt: -1 });
-      
+      const sub = await resolveSubscriptionForVerify(req.user._id, {
+        purchaseOrderId: purchaseOrderId,
+        pidx,
+      });
+
       if (!sub) {
-        // If no pending subscription, check if they already have an active subscription
-        const activeSub = await Subscription.findOne({ user: req.user._id, status: "active" }).sort({ createdAt: -1 });
-        if (activeSub) {
-          return res.status(200).json({ success: true, message: "Payment already verified (Demo)" });
-        }
         return res.status(404).json({ success: false, message: "No pending subscription found for this user." });
       }
 
-      sub.status = "active";
-      sub.paidAt = new Date();
-      await sub.save();
+      const amountCheck = validateKhaltiAmounts(sub, { callbackAmountPaisa });
+      if (!amountCheck.ok) {
+        return res.status(400).json({ success: false, message: amountCheck.message });
+      }
 
-      await Payment.findOneAndUpdate(
-        { orderId: sub._id },
-        { 
-          status: "PAID", 
-          completed_at: new Date(), 
-          transaction_uuid: pidx
-        }
-      );
-
-      await User.findByIdAndUpdate(sub.user, {
-        isMember: true,
-        UpdatedAt: new Date(),
+      const { alreadyActive } = await activateSubscription(sub, pidx, pidx);
+      return res.status(200).json({
+        success: true,
+        message: alreadyActive ? "Payment already verified (Demo)" : "Payment verified successfully (Demo)",
+        subscription: formatSubscriptionPayload(sub),
+        transactionId: pidx,
       });
-
-      return res.status(200).json({ success: true, message: "Payment verified successfully (Demo)" });
     }
 
     const khaltiResponse = await fetch("https://dev.khalti.com/api/v2/epayment/lookup/", {
@@ -396,34 +490,36 @@ export const verifyKhaltiPayment = async (req, res) => {
     const khaltiData = await khaltiResponse.json();
 
     if (khaltiData.status === "Completed") {
-      const subscriptionId = khaltiData.purchase_order_id;
-      
-      const sub = await Subscription.findById(subscriptionId);
-      if (!sub) return res.status(404).json({ success: false, message: "Subscription not found" });
-
-      if (sub.status === "active") {
-        return res.status(200).json({ success: true, message: "Payment already verified" });
-      }
-
-      sub.status = "active";
-      sub.paidAt = new Date();
-      await sub.save();
-
-      await Payment.findOneAndUpdate(
-        { orderId: subscriptionId },
-        { 
-          status: "PAID", 
-          completed_at: new Date(), 
-          transaction_uuid: khaltiData.transaction_id || pidx
-        }
-      );
-
-      await User.findByIdAndUpdate(sub.user, {
-        isMember: true,
-        UpdatedAt: new Date(),
+      const sub = await resolveSubscriptionForVerify(req.user._id, {
+        purchaseOrderId: purchaseOrderId || khaltiData.purchase_order_id,
+        pidx,
       });
 
-      return res.status(200).json({ success: true, message: "Payment verified successfully" });
+      if (!sub) {
+        return res.status(404).json({ success: false, message: "Subscription not found for this payment" });
+      }
+
+      const amountCheck = validateKhaltiAmounts(sub, {
+        khaltiTotalAmount: khaltiData.total_amount,
+        callbackAmountPaisa,
+      });
+      if (!amountCheck.ok) {
+        return res.status(400).json({ success: false, message: amountCheck.message });
+      }
+
+      const { alreadyActive } = await activateSubscription(
+        sub,
+        pidx,
+        khaltiData.transaction_id || pidx
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: alreadyActive ? "Payment already verified" : "Payment verified successfully",
+        subscription: formatSubscriptionPayload(sub),
+        transactionId: khaltiData.transaction_id || pidx,
+        amountPaid: khaltiData.total_amount ? khaltiData.total_amount / 100 : sub.amount,
+      });
     } else {
       return res.status(400).json({ success: false, message: "Payment not completed", status: khaltiData.status });
     }

@@ -23,7 +23,7 @@ const parseRoomId = (roomId) => {
 const getStudentActiveSubscription = async (userId) =>
   Subscription.findOne({
     user: userId,
-    status: { $in: ["active", "pending"] },
+    status: "active",
   })
     .sort({ createdAt: -1 })
     .populate("group", "groupName instrument teacher capacity filled")
@@ -144,7 +144,7 @@ const ensureRoomAccess = async (user, roomType, groupId) => {
     const subscription = await Subscription.findOne({ user: user._id, group: groupId })
       .select("_id status")
       .lean();
-    return Boolean(subscription && ["active", "pending"].includes(subscription.status));
+    return Boolean(subscription && subscription.status === "active");
   }
 
   return false;

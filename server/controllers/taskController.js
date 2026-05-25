@@ -1,5 +1,6 @@
 import GroupTask from "../models/GroupTask.js";
 import Group from "../models/Group.js";
+import Subscription from "../models/Subscription.js";
 
 export const createTask = async (req, res) => {
   try {
@@ -43,5 +44,31 @@ export const getTeacherTasks = async (req, res) => {
   } catch (error) {
     console.error("Error fetching tasks:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getStudentTasks = async (req, res) => {
+  try {
+    const subscription = await Subscription.findOne({
+      user: req.user._id,
+      status: { $in: ["active", "pending"] },
+      group: { $ne: null },
+    })
+      .sort({ createdAt: -1 })
+      .select("group")
+      .lean();
+
+    if (!subscription?.group) {
+      return res.status(200).json({ success: true, tasks: [] });
+    }
+
+    const tasks = await GroupTask.find({ groupId: subscription.group })
+      .populate("groupId", "groupName instrument")
+      .sort({ dueDate: 1, createdAt: -1 });
+
+    return res.status(200).json({ success: true, tasks });
+  } catch (error) {
+    console.error("Error fetching student tasks:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };

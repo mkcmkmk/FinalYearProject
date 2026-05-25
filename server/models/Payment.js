@@ -36,6 +36,13 @@ const paymentSchema = new mongoose.Schema(
       // Format: timestamp-random (e.g., "250610-162413-xyz")
     },
 
+    khaltiPidx: {
+      type: String,
+      default: null,
+      index: true,
+      sparse: true,
+    },
+
     // eSewa transaction code returned after successful payment
     esewa_transaction_code: {
       type: String,

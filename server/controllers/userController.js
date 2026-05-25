@@ -183,7 +183,7 @@ const userResponse = (user) => ({
 });
 
 const buildTeacherProfile = async (teacherId, viewer = null) => {
-  const teacher = await User.findOne({ _id: teacherId, role: "teacher" })
+  const teacher = await User.findOne({ _id: teacherId, role: "teacher", isTeacher: true })
     .select("-password")
     .lean();
 
@@ -260,7 +260,7 @@ export const updateMe = async (req, res) => {
 export const getTeacherDirectory = async (req, res) => {
   try {
     const instrument = String(req.query.instrument || "").trim();
-    const teachers = await User.find({ role: "teacher" }).select("-password").lean();
+    const teachers = await User.find({ role: "teacher", isTeacher: true }).select("-password").lean();
     const matchingTeachers = teachers.filter((teacher) => matchesInstrumentExpertise(teacher, instrument));
 
     if (!matchingTeachers.length) {
@@ -320,7 +320,7 @@ export const submitTeacherRating = async (req, res) => {
       return res.status(403).json({ success: false, message: "Student access required" });
     }
 
-    const teacher = await User.findOne({ _id: req.params.id, role: "teacher" }).select("_id").lean();
+    const teacher = await User.findOne({ _id: req.params.id, role: "teacher", isTeacher: true }).select("_id").lean();
     if (!teacher) {
       return res.status(404).json({ success: false, message: "Teacher not found" });
     }

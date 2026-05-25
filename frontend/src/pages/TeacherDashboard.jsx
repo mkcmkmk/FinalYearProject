@@ -50,19 +50,19 @@ const TeacherDashboard = () => {
   const [selectedStudentForReassign, setSelectedStudentForReassign] = useState(null);
   const [reassigningStudentId, setReassigningStudentId] = useState(null);
   const [selectedNewGroupId, setSelectedNewGroupId] = useState("");
+  const [deletingGroupId, setDeletingGroupId] = useState(null);
+  const [groupToDelete, setGroupToDelete] = useState(null);
+  const [deleteModalError, setDeleteModalError] = useState("");
 
-  const token = localStorage.getItem("token");
-
-  const authHeaders = useMemo(
-    () => ({ headers: { Authorization: `Bearer ${token}` } }),
-    [token]
-  );
+  const getAuthConfig = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  });
 
   const teacherInstrument =
     dashboard?.expertiseInstruments?.[0] || dashboard?.teacher?.instrumentExpertise || "";
 
   const loadDashboard = async () => {
-    if (!token) {
+    if (!localStorage.getItem("token")) {
       setError("Please log in first.");
       setLoading(false);
       return;
@@ -71,7 +71,7 @@ const TeacherDashboard = () => {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.get(`${API_BASE}/dashboard`, authHeaders);
+      const res = await axios.get(`${API_BASE}/dashboard`, getAuthConfig());
       const data = res.data;
       const expertiseInstrument =
         data?.expertiseInstruments?.[0] || data?.teacher?.instrumentExpertise || "";
@@ -82,9 +82,16 @@ const TeacherDashboard = () => {
         instrument: expertiseInstrument || prev.instrument,
       }));
 
-      if (data.groups?.length && !scheduleForm.groupId) {
-        setScheduleForm((prev) => ({ ...prev, groupId: data.groups[0]._id }));
-      }
+      setScheduleForm((prev) => {
+        const validGroupIds = new Set((data.groups || []).map((group) => String(group._id || group.id)));
+        if (prev.groupId && !validGroupIds.has(String(prev.groupId))) {
+          return { ...prev, groupId: data.groups?.[0]?._id || "" };
+        }
+        if (!prev.groupId && data.groups?.length) {
+          return { ...prev, groupId: data.groups[0]._id };
+        }
+        return prev;
+      });
     } catch (err) {
       setError(err?.response?.data?.message || "Unable to load teacher dashboard");
     } finally {
@@ -119,7 +126,7 @@ const TeacherDashboard = () => {
           instrument: teacherInstrument || assignmentForm.instrument,
           capacity: Number(assignmentForm.capacity),
         },
-        authHeaders
+        getAuthConfig()
       );
 
       setMessage(res.data.message || "Students assigned successfully");
@@ -143,7 +150,7 @@ const TeacherDashboard = () => {
     setMessage("");
 
     try {
-      const res = await axios.post(`${API_BASE}/schedules`, scheduleForm, authHeaders);
+      const res = await axios.post(`${API_BASE}/schedules`, scheduleForm, getAuthConfig());
       setMessage(res.data.message || "Class schedule created");
       setScheduleForm((prev) => ({ ...emptyScheduleForm, groupId: prev.groupId }));
       await loadDashboard();
@@ -158,6 +165,83 @@ const TeacherDashboard = () => {
     setSelectedStudentForReassign(student);
     setSelectedNewGroupId("");
     setShowReassignModal(true);
+  };
+
+  const openDeleteGroupModal = (group) => {
+    setGroupToDelete(group);
+    setDeleteModalError("");
+    setError("");
+    setMessage("");
+  };
+
+  const handleConfirmDeleteGroup = async () => {
+    if (!groupToDelete || deletingGroupId) return;
+
+    const groupId = String(groupToDelete._id || groupToDelete.id || "");
+    if (!groupId) {
+      setDeleteModalError("Could not read this group's id. Refresh the page and try again.");
+      return;
+    }
+
+    setDeletingGroupId(groupId);
+    setDeleteModalError("");
+
+    try {
+      const res = await axios.post(
+        `${API_BASE}/groups/delete`,
+        { groupId },
+        getAuthConfig()
+      );
+
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || "Unable to delete group");
+      }
+
+      setMessage(res.data.message || "Group deleted successfully");
+      setGroupToDelete(null);
+
+      setDashboard((prev) => {
+        if (!prev) return prev;
+
+        const remainingGroups = (prev.groups || []).filter(
+          (entry) => String(entry._id || entry.id) !== groupId
+        );
+
+        return {
+          ...prev,
+          groups: remainingGroups,
+          schedules: (prev.schedules || []).filter(
+            (entry) => String(entry.group?._id || entry.group || "") !== groupId
+          ),
+          summary: {
+            ...prev.summary,
+            totalGroups: remainingGroups.length,
+          },
+        };
+      });
+
+      if (String(scheduleForm.groupId) === groupId) {
+        setScheduleForm((prev) => ({
+          ...prev,
+          groupId:
+            (dashboard?.groups || [])
+              .filter((entry) => String(entry._id || entry.id) !== groupId)[0]?._id || "",
+        }));
+      }
+
+      await loadDashboard();
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 404) {
+        setDeleteModalError(
+          "Delete API not found. Stop the server, run npm start in the server folder, then try again."
+        );
+      } else {
+        setDeleteModalError(err?.response?.data?.message || err.message || "Unable to delete group");
+      }
+    } finally {
+      setDeletingGroupId(null);
+    }
   };
 
   const handleReassignStudent = async () => {
@@ -177,7 +261,7 @@ const TeacherDashboard = () => {
           subscriptionId: selectedStudentForReassign._id,
           newGroupId: selectedNewGroupId,
         },
-        authHeaders
+        getAuthConfig()
       );
 
       setMessage(res.data.message || "Student reassigned successfully");
@@ -468,14 +552,26 @@ const TeacherDashboard = () => {
               ) : (
                 dashboard.groups.map((group) => (
                   <div className="p-5 bg-[#f8f9fb] border border-gray-100 rounded-[1.5rem] flex flex-col gap-4" key={group._id}>
-                    <div className="flex justify-between items-center">
-                      <div>
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
                         <h3 className="font-extrabold text-gray-800 text-md leading-tight">{group.groupName}</h3>
                         <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider block mt-0.5">{group.instrument}</span>
                       </div>
-                      <span className="px-3 py-1 bg-white border border-gray-100 rounded-full text-xs font-bold text-gray-600">
-                        {group.filled}/{group.capacity} students
-                      </span>
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <span className="px-3 py-1 bg-white border border-gray-100 rounded-full text-xs font-bold text-gray-600">
+                          {group.filled}/{group.capacity} students
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => openDeleteGroupModal(group)}
+                          disabled={String(deletingGroupId) === String(group._id || group.id)}
+                          className="text-[9px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 disabled:opacity-50 px-2.5 py-1 rounded transition-colors"
+                        >
+                          {String(deletingGroupId) === String(group._id || group.id)
+                            ? "Deleting..."
+                            : "Delete group"}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200/50">
@@ -547,6 +643,54 @@ const TeacherDashboard = () => {
         </section>
 
       </div>
+
+      {/* Delete Group Modal */}
+      {groupToDelete && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-[2rem] max-w-md w-full p-8 shadow-lg">
+            <div className="mb-6">
+              <p className="text-[11px] font-bold text-red-500 uppercase tracking-widest mb-2">Delete Group</p>
+              <h2 className="text-xl font-extrabold text-gray-900">
+                Delete "{groupToDelete.groupName}"?
+              </h2>
+              <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                {(groupToDelete.students?.length || 0) > 0
+                  ? `${groupToDelete.students.length} student(s) will be unassigned. `
+                  : ""}
+                All schedules and tasks for this group will be removed. This cannot be undone.
+              </p>
+            </div>
+
+            {deleteModalError && (
+              <div className="p-3 bg-red-50 text-red-600 rounded-[1rem] text-xs font-bold mb-4">
+                {deleteModalError}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setGroupToDelete(null);
+                  setDeleteModalError("");
+                }}
+                disabled={Boolean(deletingGroupId)}
+                className="flex-1 py-3 border border-gray-100 bg-white hover:bg-gray-50 text-gray-700 rounded-[1rem] text-xs font-bold tracking-wider uppercase transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDeleteGroup}
+                disabled={Boolean(deletingGroupId)}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-100 disabled:text-gray-400 text-white rounded-[1rem] text-xs font-bold tracking-wider uppercase transition-colors"
+              >
+                {deletingGroupId ? "Deleting..." : "Delete group"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Reassignment Modal */}
       {showReassignModal && selectedStudentForReassign && (
