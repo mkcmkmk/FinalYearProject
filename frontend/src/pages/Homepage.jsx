@@ -93,20 +93,20 @@ const HomePage = () => {
         </nav>
 
         <div className="flex items-center gap-2">
-          {user ? (
-            <button 
-              type="button" 
-              className="px-5 py-2.5 bg-[#1e1e1e] hover:bg-black text-white rounded-[1.25rem] font-bold text-[15px] transition-all cursor-pointer shadow-sm border-none" 
-              onClick={() => navigate(getDashboardPath())}
-            >
-              Go to Dashboard
-            </button>
-          ) : (
-            <>
-              <button type="button" className="px-5 py-2.5 rounded-[1.25rem] font-bold text-[15px] text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer border-none bg-transparent" onClick={() => navigate("/login")}>Log In</button>
-              <button type="button" className="px-5 py-2.5 bg-[#1e1e1e] hover:bg-black text-white rounded-[1.25rem] font-bold text-[15px] transition-all cursor-pointer shadow-sm border-none" onClick={() => navigate("/signup")}>Get Started</button>
-            </>
-          )}
+          <button
+            type="button"
+            className="px-5 py-2.5 rounded-[1.25rem] font-bold text-[15px] text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer border-none bg-transparent"
+            onClick={() => navigate("/login")}
+          >
+            Log In
+          </button>
+          <button
+            type="button"
+            className="px-5 py-2.5 bg-[#1e1e1e] hover:bg-black text-white rounded-[1.25rem] font-bold text-[15px] transition-all cursor-pointer shadow-sm border-none"
+            onClick={() => navigate("/signup")}
+          >
+            Sign Up
+          </button>
         </div>
       </header>
 
@@ -159,8 +159,8 @@ const HomePage = () => {
             </p>
 
             <div className="landing-hero-actions">
-              <button type="button" className="btn btn-primary" onClick={() => navigate("/signup")}>Create Account</button>
-              <button type="button" className="btn btn-ghost" onClick={() => navigate("/login")}>Explore Dashboard Access</button>
+              <button type="button" className="btn btn-primary" onClick={() => navigate("/signup")}>Sign Up</button>
+              <button type="button" className="btn btn-ghost" onClick={() => navigate("/login")}>Log In</button>
             </div>
 
             <div className="landing-stats">

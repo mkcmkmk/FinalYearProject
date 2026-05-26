@@ -446,7 +446,7 @@ const AdminDashboard = () => {
                         <div>
                           <h4 style={{ margin: 0, fontSize: "16px", color: "#0f172a", fontWeight: "600" }}>{request.name}</h4>
                           <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
-                            <a href={`mailto:${request.email}`} style={{ color: "#2b6fff", fontSize: "13px", textDecoration: "none", fontWeight: "500" }}>{request.email}</a>
+                            <a href={`mailto:${request.email}`} style={{ color: "#404040", fontSize: "13px", textDecoration: "underline", fontWeight: "500" }}>{request.email}</a>
                             <span style={{ color: "#cbd5e1" }}>•</span>
                             <span style={{ color: "#64748b", fontSize: "13px" }}>{request.phone || "No contact"}</span>
                           </div>

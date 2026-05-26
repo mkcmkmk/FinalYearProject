@@ -1,8 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import "./Login.css";
+import "./AdminLogin.css";
 import { useAuth } from "../context/authContext";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+const FEATURES = [
+  { icon: "♪", title: "Learn any instrument", desc: "Piano, guitar, vocals, and more — all in one place" },
+  { icon: "◉", title: "Expert teachers", desc: "Connect with verified instructors for your level" },
+  { icon: "✓", title: "Flexible plans", desc: "Monthly, quarterly, or yearly subscriptions" },
+];
 
 let googleScriptPromise;
 
@@ -47,8 +55,9 @@ const redirectToDashboard = (navigate, role) => {
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState("login");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [googleStatus, setGoogleStatus] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -79,9 +88,7 @@ const Login = () => {
         setGoogleLoading(true);
         setError(null);
 
-        const res = await axios.post("http://localhost:3000/api/auth/google", {
-          credential,
-        });
+        const res = await axios.post(`${API_BASE}/api/auth/google`, { credential });
 
         if (res.data?.success) {
           completeLogin(res.data);
@@ -149,105 +156,174 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/auth/login",
-        { email, password }
-      );
+      const res = await axios.post(`${API_BASE}/api/auth/login`, {
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-      if (res.data.success) {
+      if (res.data?.success) {
         completeLogin(res.data);
+      } else {
+        setError(res.data?.message || "Login failed.");
       }
     } catch (err) {
       setError(err?.response?.data?.message || "Server error");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="auth-page">
-      <div className="welcome">
-        <h1>Welcome to Harmoniq</h1>
-        <p>Sign in to continue to your dashboard</p>
-      </div>
+    <div className="admin-login-page">
+      <aside className="admin-login-brand">
+        <div className="admin-brand-top">
+          <div className="admin-logo-row">
+            <div className="admin-logo-mark">H</div>
+            <div className="admin-logo-text">
+              Harmoniq
+              <span>Music School</span>
+            </div>
+          </div>
 
-      <div className="auth-card">
-        <h2>Get Started</h2>
-        <p className="subtitle">Sign up to create your account</p>
+          <div className="admin-brand-copy">
+            <h1>Your music journey starts here</h1>
+            <p>
+              Sign in to access lessons, schedules, payments, and your personal dashboard —
+              whether you are a student or a teacher.
+            </p>
+          </div>
 
-        <div className="tabs">
-          <button
-            className={activeTab === "login" ? "tab active" : "tab"}
-            onClick={() => setActiveTab("login")}
-          >
-            Login
-          </button>
-          <button
-            type="button"
-            className={activeTab === "signup" ? "tab active" : "tab"}
-            onClick={() => navigate("/signup")}
-          >
-            Sign Up
-          </button>
+          <div className="admin-feature-list">
+            {FEATURES.map((item) => (
+              <div key={item.title} className="admin-feature-item">
+                <div className="admin-feature-icon">{item.icon}</div>
+                <div>
+                  <strong>{item.title}</strong>
+                  <span>{item.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+      </aside>
 
-        {error && <p className="error">{error}</p>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label>Email</label>
-            <input
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+      <main className="admin-login-form-panel">
+        <div className="admin-login-card">
+          <div className="admin-login-card-header">
+            <div className="admin-badge">Welcome back</div>
+            <h2>Sign in</h2>
+            <p>Use your email or continue with Google.</p>
           </div>
 
-          <div className="field">
-            <label>Password</label>
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="auth-support-row">
-            <button
-              type="button"
-              className="forgot-password-btn"
-              title="Forgot password is coming soon"
-            >
-              Forgot password?
+          <div className="auth-tabs">
+            <button type="button" className="auth-tab active">
+              Login
+            </button>
+            <button type="button" className="auth-tab" onClick={() => navigate("/signup")}>
+              Sign Up
             </button>
           </div>
 
-          <button type="submit" className="login-btn">
-            Sign In
-          </button>
-        </form>
+          {error && (
+            <div className="admin-alert" role="alert">
+              <span className="admin-alert-icon" aria-hidden="true">
+                ⚠
+              </span>
+              <span>{error}</span>
+            </div>
+          )}
 
-        <div className="auth-divider">
-          <span>or</span>
+          <form onSubmit={handleSubmit}>
+            <div className="admin-field">
+              <label htmlFor="login-email">Email address</label>
+              <div className="admin-input-wrap">
+                <input
+                  id="login-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="username"
+                />
+              </div>
+            </div>
+
+            <div className="admin-field">
+              <label htmlFor="login-password">
+                Password
+                <button
+                  type="button"
+                  className="admin-label-action"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </label>
+              <div className="admin-input-wrap">
+                <input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+            </div>
+
+            <div className="auth-support-row">
+              <button type="button" className="auth-forgot-btn" title="Forgot password is coming soon">
+                Forgot password?
+              </button>
+            </div>
+
+            <button type="submit" className="admin-submit-btn" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="admin-spinner" aria-hidden="true" />
+                  Signing in…
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </button>
+          </form>
+
+          <div className="auth-divider">
+            <span>or</span>
+          </div>
+
+          <div className="google-login-shell">
+            <div ref={googleButtonRef} className="google-button-slot" />
+            {googleLoading ? <p className="google-status">Signing you in with Google…</p> : null}
+            {!googleLoading && googleStatus ? <p className="google-status">{googleStatus}</p> : null}
+            <p className="google-note">
+              New Google accounts are created as students. Existing teacher or admin emails keep their role.
+            </p>
+          </div>
+
+          <div className="admin-login-footer">
+            <p className="auth-link-text">
+              Don&apos;t have an account?{" "}
+              <button type="button" className="auth-link-btn" onClick={() => navigate("/signup")}>
+                Create one
+              </button>
+            </p>
+            <p className="auth-legal">
+              By continuing, you agree to our Terms of Service and Privacy Policy.
+            </p>
+            <Link to="/" className="admin-back-link">
+              ← Back to Harmoniq home
+            </Link>
+          </div>
         </div>
-
-        <div className="google-login-shell">
-          <div ref={googleButtonRef} className="google-button-slot" />
-          {googleLoading ? <p className="google-status">Signing you in with Google...</p> : null}
-          {!googleLoading && googleStatus ? <p className="google-status">{googleStatus}</p> : null}
-          <p className="google-note">
-            New Google accounts will be created as student accounts. Existing teacher or admin emails keep their current role.
-          </p>
-        </div>
-      </div>
-
-      <p className="footer-text">
-        By continuing, you agree to our Terms of Service and Privacy Policy.
-      </p>
+      </main>
     </div>
   );
 };

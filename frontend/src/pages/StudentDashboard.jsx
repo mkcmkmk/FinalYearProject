@@ -19,7 +19,11 @@ const formatTaskDate = (dueDate) => {
   })}`;
 };
 
-const mapTaskStatus = (status) => (status === "archived" ? "Done" : "To do");
+const mapTaskStatus = (studentStatus) => {
+  if (studentStatus === "done") return "Done";
+  if (studentStatus === "in_progress") return "In progress";
+  return "To do";
+};
 
 const StudentDashboard = () => {
   const { user, refreshUser } = useAuth();
@@ -204,12 +208,12 @@ const StudentDashboard = () => {
 
   const mappedTasks = useMemo(() => {
     return tasks.map((task) => ({
-      id: task._id,
+      id: task.id || task._id,
       title: task.title,
       description: task.description,
-      status: mapTaskStatus(task.status),
-      groupName: task.groupId?.groupName || "My Group",
-      instrument: task.groupId?.instrument || "Group task",
+      status: mapTaskStatus(task.studentStatus),
+      groupName: task.groupName || task.groupId?.groupName || "My Group",
+      instrument: task.instrument || task.groupId?.instrument || "Group task",
       date: formatTaskDate(task.dueDate),
     }));
   }, [tasks]);
@@ -318,7 +322,9 @@ const StudentDashboard = () => {
                     <span className={`px-3 py-1 rounded-full text-[12px] font-bold whitespace-nowrap ${
                       task.status === "Done"
                         ? "bg-emerald-100 text-emerald-700"
-                        : "bg-[#ded6ff] text-[#7a5cff]"
+                        : task.status === "In progress"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-[#ded6ff] text-[#7a5cff]"
                     }`}>
                       {task.status}
                     </span>
@@ -338,7 +344,11 @@ const StudentDashboard = () => {
             )}
           </div>
 
-          <button className="w-full mt-4 py-3.5 border-2 border-gray-100 rounded-[1.25rem] font-bold text-[15px] text-gray-600 hover:bg-gray-50 transition-colors">
+          <button
+            type="button"
+            onClick={() => navigate("/student-tasks")}
+            className="w-full mt-4 py-3.5 border-2 border-gray-100 rounded-[1.25rem] font-bold text-[15px] text-gray-600 hover:bg-gray-50 transition-colors"
+          >
             View all tasks
           </button>
         </div>

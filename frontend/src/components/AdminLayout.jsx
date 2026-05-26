@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 import LogoutModal from "./LogoutModal";
+import "../styles/AdminTheme.css";
 
 const DashboardIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>;
 const UsersIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>;
@@ -20,21 +21,21 @@ const AdminLayout = ({ children }) => {
 
   const adminLinks = [
     { name: "Dashboard", icon: <DashboardIcon />, path: "/admin-dashboard", active: location.pathname === "/admin-dashboard" },
-    { name: "Users", icon: <UsersIcon />, path: "/admin-dashboard", active: false }, // Placeholder
+    { name: "Users", icon: <UsersIcon />, path: "/admin/users", active: location.pathname.includes("/admin/users") },
     { name: "Teachers", icon: <TeachersIcon />, path: "/admin/teachers", active: location.pathname.includes("/admin/teachers") },
     { name: "Classes", icon: <ClassesIcon />, path: "/admin-dashboard", active: false }, // Placeholder
-    { name: "Payments", icon: <PaymentsIcon />, path: "/admin-dashboard", active: false }, // Placeholder
+    { name: "Payments", icon: <PaymentsIcon />, path: "/admin/payments", active: location.pathname.includes("/admin/payments") },
     { name: "Notices", icon: <NoticesIcon />, path: "/admin-dashboard", active: false }, // Placeholder
   ];
 
   return (
-    <div className="dash flex h-screen bg-[#e8ecf3] p-4 gap-4 font-sans text-gray-800">
-      <aside className="w-[260px] bg-white rounded-[2rem] p-6 flex flex-col shadow-sm flex-shrink-0">
+    <div className="dash admin-bw flex h-screen bg-neutral-100 p-4 gap-4 font-sans text-neutral-800">
+      <aside className="w-[260px] bg-white rounded-[2rem] p-6 flex flex-col shadow-sm border border-neutral-200 flex-shrink-0">
         <div className="flex items-center gap-3 mb-10 pl-2">
-          <div className="w-10 h-10 bg-blue-600 rounded-[14px] flex items-center justify-center text-white font-extrabold text-xl">
-            A
+          <div className="w-10 h-10 bg-neutral-900 rounded-[14px] flex items-center justify-center text-white font-bold text-xl">
+            H
           </div>
-          <span className="text-2xl font-bold tracking-tight cursor-pointer" onClick={() => navigate("/admin-dashboard")}>Admin Panel</span>
+          <span className="text-xl font-bold tracking-tight text-neutral-900 cursor-pointer" onClick={() => navigate("/admin-dashboard")}>Harmoniq Admin</span>
         </div>
 
         <nav className="flex-1 space-y-1">
@@ -43,7 +44,7 @@ const AdminLayout = ({ children }) => {
                 key={link.name}
                 onClick={() => navigate(link.path)}
                 className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-[1.25rem] text-left font-semibold transition-colors border-none cursor-pointer ${
-                  link.active ? "bg-blue-600 text-white" : "text-gray-500 bg-transparent hover:bg-gray-50"
+                  link.active ? "bg-neutral-900 text-white" : "text-neutral-500 bg-transparent hover:bg-neutral-50"
                 }`}
               >
                 <div className={`flex items-center justify-center ${link.active ? "text-white" : "text-gray-400"}`}>

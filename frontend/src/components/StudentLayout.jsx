@@ -26,7 +26,7 @@ const StudentLayout = ({ children }) => {
   const sidebarLinks = [
     { name: "Dashboard", icon: <DashboardIcon />, path: "/student-dashboard", match: "/student-dashboard" },
     { name: "Schedule", icon: <ScheduleIcon />, path: "/schedule", match: "/schedule" },
-    { name: "Tasks", icon: <TasksIcon />, path: "/student-dashboard", match: "/tasks" }, // Map to dashboard for now
+    { name: "Tasks", icon: <TasksIcon />, path: "/student-tasks", match: "/student-tasks" },
     { name: "Chat", icon: <ChatIcon />, path: "/chat", match: "/chat" },
     { name: "Courses", icon: <TestsIcon />, path: "/student-dashboard#courses", match: "/courses" },
     { name: "Plans", icon: <NotesIcon />, path: "/pay", match: "/pay" },

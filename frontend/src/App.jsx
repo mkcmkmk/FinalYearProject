@@ -5,6 +5,8 @@ import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminTeachers from "./pages/AdminTeachers";
+import AdminUsers from "./pages/AdminUsers";
+import AdminPayments from "./pages/AdminPayments";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherProfile from "./pages/TeacherProfile";
@@ -14,6 +16,7 @@ import SignUp from "./pages/SignUp";
 import Pay from "./pages/Pay";
 import Profile from "./pages/Profile";
 import StudentSchedule from "./pages/StudentSchedule";
+import StudentTasks from "./pages/StudentTasks";
 import KhaltiCallback from "./pages/KhaltiCallback";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentFailure from "./pages/PaymentFailure";
@@ -46,6 +49,22 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute roles={["admin"]}>
+            <AdminUsers />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/payments"
+        element={
+          <ProtectedRoute roles={["admin"]}>
+            <AdminPayments />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/student-dashboard"
@@ -68,6 +87,14 @@ function App() {
         element={
           <ProtectedRoute roles={["student"]}>
             <StudentSchedule />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student-tasks"
+        element={
+          <ProtectedRoute roles={["student"]}>
+            <StudentTasks />
           </ProtectedRoute>
         }
       />
