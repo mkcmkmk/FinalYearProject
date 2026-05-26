@@ -60,6 +60,15 @@ const toSafeUser = (user) => ({
   createdAt: user.createdAt,
 });
 
+const toAdminUserDetail = (user) => ({
+  ...toSafeUser(user),
+  contactNumber: user.contactNumber ?? null,
+  instrumentExpertise: user.instrumentExpertise || "",
+  yearsOfExperience: user.yearsOfExperience ?? null,
+  teacherBio: user.teacherBio || "",
+  updatedAt: user.UpdatedAt || user.updatedAt || null,
+});
+
 const computeGrowth = (current, previous) => {
   if (!previous) {
     return current > 0 ? 100 : 0;
@@ -76,6 +85,104 @@ const computeExpiry = (plan, fromDate = new Date()) => {
   if (plan === "yearly") expires.setFullYear(expires.getFullYear() + 1);
 
   return expires;
+};
+
+const getSubscriptionAmount = (subscription) =>
+  subscription.amount || planPriceMap[subscription.plan] || 0;
+
+const getSubscriptionDate = (subscription) =>
+  subscription.paidAt || subscription.createdAt;
+
+const getPeriodStart = (period) => {
+  const now = new Date();
+
+  if (period === "week") {
+    const start = new Date(now);
+    start.setDate(now.getDate() - now.getDay());
+    start.setHours(0, 0, 0, 0);
+    return start;
+  }
+
+  if (period === "month") {
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  if (period === "year") {
+    return new Date(now.getFullYear(), 0, 1);
+  }
+
+  return null;
+};
+
+const toAdminSubscription = (subscription) => ({
+  id: subscription._id,
+  userName: subscription.user?.name || "Unknown student",
+  userEmail: subscription.user?.email || "No email",
+  teacherName: subscription.teacher?.name || "Unassigned",
+  plan: subscription.plan,
+  instrument: subscription.instrument,
+  level: subscription.level || "beginner",
+  status: subscription.status,
+  amount: getSubscriptionAmount(subscription),
+  groupName: subscription.groupName || subscription.group?.groupName || "",
+  paidAt: subscription.paidAt,
+  expiresAt: subscription.expiresAt,
+  createdAt: subscription.createdAt,
+});
+
+export const getAdminSubscriptions = async (req, res) => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const period = String(req.query.period || "all").toLowerCase();
+    const validPeriods = ["all", "week", "month", "year"];
+    if (!validPeriods.includes(period)) {
+      return res.status(400).json({ success: false, message: "Invalid period filter" });
+    }
+
+    const subscriptions = await Subscription.find()
+      .populate("user", "name email")
+      .populate("teacher", "name email")
+      .populate("group", "groupName")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const periodStart = getPeriodStart(period);
+    const filtered = periodStart
+      ? subscriptions.filter((item) => new Date(getSubscriptionDate(item)) >= periodStart)
+      : subscriptions;
+
+    const formatted = filtered.map(toAdminSubscription);
+    const totalRevenue = formatted.reduce((sum, item) => sum + item.amount, 0);
+
+    return res.json({
+      success: true,
+      period,
+      subscriptions: formatted,
+      total: formatted.length,
+      totalRevenue,
+    });
+  } catch (error) {
+    console.error("getAdminSubscriptions error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getAllUsers = async (req, res) => {
+  try {
+    if (!ensureAdmin(req, res)) return;
+
+    const users = await User.find().sort({ createdAt: -1 }).select("-password").lean();
+
+    return res.json({
+      success: true,
+      users: users.map(toAdminUserDetail),
+      total: users.length,
+    });
+  } catch (error) {
+    console.error("getAllUsers error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
 };
 
 export const getAdminDashboard = async (req, res) => {

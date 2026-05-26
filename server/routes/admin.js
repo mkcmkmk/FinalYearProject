@@ -3,6 +3,8 @@ import { protect } from "../middleware/auth.js";
 import {
   createAdminNotice,
   getAdminDashboard,
+  getAdminSubscriptions,
+  getAllUsers,
   removeAdminNotice,
   removeUserAccount,
   reviewTeacherVerification,
@@ -12,6 +14,8 @@ import {
 const router = express.Router();
 
 router.get("/dashboard", protect, getAdminDashboard);
+router.get("/users", protect, getAllUsers);
+router.get("/subscriptions", protect, getAdminSubscriptions);
 router.patch("/teacher-verifications/:id", protect, reviewTeacherVerification);
 router.patch("/subscriptions/:id", protect, updateSubscriptionStatus);
 router.delete("/users/:id", protect, removeUserAccount);
